@@ -55,7 +55,7 @@ class CrossEntropyClassifier:
     lr: fixed learning rate
     validation: ratio of data that will be use for cross-validation (between 0 and 1)
     """
-    def fit(self, X, y, iterations=10, lr=0.001, validation=None):
+    def fit(self, X, y, iterations=10, lr=0.001, validation=None, early_stopping=None):
         assert X.shape[0] == y.shape[0]
         assert X.ndim == 2 and y.ndim == 1
         assert iterations > 0
@@ -73,16 +73,26 @@ class CrossEntropyClassifier:
             X = X[:split_idx,:]
             y = y[:split_idx]
             history['val_loss'] = [self._calc_loss(Xval, yval)]
+            history['val_accuracy'] = [self._calc_accuracy(Xval, yval)]
+            best_validation_index = 0
 
         history['loss'] = [self._calc_loss(X, y)]
+        history['accuracy'] = [self._calc_accuracy(X, y)]
 
         for it in tqdm(range(iterations)):
             gradW = self._calc_gradient(X, y)
             self.W -= lr * gradW
             history['loss'].append(self._calc_loss(X, y))
+            history['accuracy'].append(self._calc_accuracy(X, y))
 
             if validation is not None:
                 history['val_loss'].append(self._calc_loss(Xval, yval))
+                history['val_accuracy'].append(self._calc_accuracy(Xval, yval))
+
+                if history['val_accuracy'][-1] > history['val_accuracy'][best_validation_index]:
+                    best_validation_index = it
+                if it + 1 == best_validation_index + early_stopping:
+                    break
 
         return history
 
@@ -102,6 +112,10 @@ class CrossEntropyClassifier:
         else:
             y = numpy.argmax(P, axis=1)
             return y
+
+    def _calc_accuracy(self, X, y):
+        ypred = self.predict(X)
+        return numpy.sum(ypred == y) * 100.0 / y.shape[0]
 
 if __name__ == '__main__':
     model = CrossEntropyClassifier(2)

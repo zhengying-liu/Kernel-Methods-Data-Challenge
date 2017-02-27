@@ -2,7 +2,9 @@ import matplotlib.pyplot as plt
 import numpy
 
 from cross_entropy_classifier import CrossEntropyClassifier
-from utils import load_data, write_output
+from utils import load_data, plot_history, write_output
+
+output_suffix = 'trial1'
 
 print("Loading data")
 Xtrain, Ytrain, Xtest = load_data()
@@ -11,19 +13,19 @@ Xtest = numpy.reshape(Xtest, (Xtest.shape[0], -1))
 
 print("Fitting on training data")
 model = CrossEntropyClassifier(10)
-iterations = 300
-history = model.fit(Xtrain, Ytrain, iterations, 0.1, 0.2)
+iterations = 40
+history = model.fit(Xtrain, Ytrain, iterations, 0.1, 0.2, 10)
+print len(history['loss'])
 
-plt.plot(range(iterations + 1), history['loss'], range(iterations + 1), history['val_loss'])
-plt.legend(['train', 'validation'], loc='upper left')
-plt.ylabel('loss')
-plt.xlabel('epoch')
-plt.show()
+best = numpy.argmax(history['val_accuracy'])
+print("best accuracy is %.3f at iteration %d" % (history['val_accuracy'][best], best))
 
-best = numpy.argmin(history['val_loss'])
+f = plot_history(history)
+f.savefig('plots/' + output_suffix + '.png')
+
 model = CrossEntropyClassifier(10)
 history = model.fit(Xtrain, Ytrain, best, 0.1)
 
 print("Predicting on test data")
 Ytest = model.predict(Xtest)
-write_output(Ytest, 'results/Yte.csv')
+write_output(Ytest, 'results/Yte_' + output_suffix + '.csv')

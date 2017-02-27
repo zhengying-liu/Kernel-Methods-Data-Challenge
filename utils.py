@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy
 
 def reshape_images(X):
@@ -37,6 +38,22 @@ def write_output(Y, filename):
         f.write("{0:d},{1:d}\n".format(i + 1, y))
 
     print("Ytest output to : %s" % filename)
+
+def plot_history(history):
+    n = len(history['loss'])
+    f, axarr = plt.subplots(2, sharex=True)
+
+    axarr[0].plot(range(n), history['loss'], range(n), history['val_loss'])
+    axarr[0].legend(['train', 'validation'], loc='upper left')
+    axarr[0].set_ylabel('loss')
+    axarr[0].set_xlabel('epoch')
+
+    axarr[1].plot(range(n), history['accuracy'], range(n), history['val_accuracy'])
+    axarr[1].legend(['train', 'validation'], loc='upper left')
+    axarr[1].set_ylabel('accuracy')
+    axarr[1].set_xlabel('epoch')
+
+    return f
 
 if __name__ == '__main__':
     Xtrain, Ytrain, Xtest = load_data()
