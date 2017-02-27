@@ -53,8 +53,9 @@ class CrossEntropyClassifier:
     X: matrix of size (number of data samples) x (dimension of data)
     iterations: number of gradient descent steps
     lr: fixed learning rate
+    validation: ratio of data that will be use for cross-validation (between 0 and 1)
     """
-    def fit(self, X, y, iterations=10, lr=0.001):
+    def fit(self, X, y, iterations=10, lr=0.001, validation=None):
         assert X.shape[0] == y.shape[0]
         assert X.ndim == 2 and y.ndim == 1
         assert iterations > 0
@@ -62,14 +63,26 @@ class CrossEntropyClassifier:
         n, d = X.shape
 
         self.W = numpy.zeros((d, self.nclasses))
-        history = {
-            'loss': [self._calc_loss(X, y)]
-        }
+        history = {}
+
+        if validation is not None:
+            assert validation > 0 and validation < 1
+            split_idx = int(validation * n)
+            Xval = X[split_idx:,:]
+            yval = y[split_idx:]
+            X = X[:split_idx,:]
+            y = y[:split_idx]
+            history['val_loss'] = [self._calc_loss(Xval, yval)]
+
+        history['loss'] = [self._calc_loss(X, y)]
 
         for it in tqdm(range(iterations)):
             gradW = self._calc_gradient(X, y)
             self.W -= lr * gradW
             history['loss'].append(self._calc_loss(X, y))
+
+            if validation is not None:
+                history['val_loss'].append(self._calc_loss(Xval, yval))
 
         return history
 
