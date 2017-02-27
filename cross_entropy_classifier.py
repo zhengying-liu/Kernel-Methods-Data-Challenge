@@ -69,9 +69,21 @@ class CrossEntropyClassifier:
 
         return history
 
-    def predict(self, X):
-        # TODO
-        pass
+    def predict(self, X, probability=False):
+        n = X.shape[0]
+        P = numpy.dot(X, self.W)
+
+        if probability:
+            P = numpy.exp(P)
+            sumP = numpy.sum(P, axis=1)
+
+            for i in range(n):
+                P[i, :] = P[i, :] / sumP[i]
+
+            return P
+        else:
+            y = numpy.argmax(P, axis=1)
+            return y
 
 if __name__ == '__main__':
     model = CrossEntropyClassifier(2)
@@ -79,3 +91,5 @@ if __name__ == '__main__':
     y = numpy.array([0,1])
     history = model.fit(X,y)
     print(history)
+    print(model.predict(X))
+    print(model.predict(X, probability=True))
