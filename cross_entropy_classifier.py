@@ -2,6 +2,7 @@
 Classification into multiple classes with cross entropy loss
 """
 
+from tqdm import tqdm
 import numpy
 
 class CrossEntropyClassifier:
@@ -19,18 +20,21 @@ class CrossEntropyClassifier:
         loss = 0.0
 
         P = numpy.dot(X, self.W)
+        P -= numpy.max(P)
         P = numpy.exp(P)
         sumP = numpy.sum(P, axis=1)
 
         for i in range(n):
-            loss += -numpy.log(P[i, y[i]] / sumP[i])
+            p = P[i, y[i]] / sumP[i]
+            loss += -numpy.log(p)
 
         return loss / n
 
     def _calc_gradient(self, X, y):
-        n,d = X.shape
+        n = X.shape[0]
 
         P = numpy.dot(X, self.W)
+        P -= numpy.max(P)
         P = numpy.exp(P)
         sumP = numpy.sum(P, axis=1)
 
@@ -43,7 +47,7 @@ class CrossEntropyClassifier:
                     c -= 1 / P[i, y[i]]
                 gradW[:, j] += c * X[i, :].T
 
-        return gradW
+        return gradW / n
 
     """
     X: matrix of size (number of data samples) x (dimension of data)
@@ -62,7 +66,7 @@ class CrossEntropyClassifier:
             'loss': [self._calc_loss(X, y)]
         }
 
-        for it in range(iterations):
+        for it in tqdm(range(iterations)):
             gradW = self._calc_gradient(X, y)
             self.W -= lr * gradW
             history['loss'].append(self._calc_loss(X, y))
@@ -74,6 +78,7 @@ class CrossEntropyClassifier:
         P = numpy.dot(X, self.W)
 
         if probability:
+            P -= numpy.max(P)
             P = numpy.exp(P)
             sumP = numpy.sum(P, axis=1)
 
