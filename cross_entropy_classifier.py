@@ -53,7 +53,7 @@ class CrossEntropyClassifier:
     X: matrix of size (number of data samples) x (dimension of data)
     iterations: number of gradient descent steps
     lr: fixed learning rate
-    validation: ratio of data that will be use for cross-validation (between 0 and 1)
+    validation: ratio of data that will be used for cross-validation (between 0 and 1)
     """
     def fit(self, X, y, iterations=10, lr=0.001, validation=None, early_stopping=None):
         assert X.shape[0] == y.shape[0]
