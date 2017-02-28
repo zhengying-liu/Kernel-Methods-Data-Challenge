@@ -5,7 +5,7 @@ class LinearKernel:
         pass
 
     def calc(self, x, y):
-        return numpy.dot(x.T, y)
+        return numpy.dot(x, y)
 
 class GaussianKernel:
     def __init__(self, sigma):

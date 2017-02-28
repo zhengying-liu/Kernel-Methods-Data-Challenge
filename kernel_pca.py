@@ -11,7 +11,7 @@ class KernelPCA:
 
         for i in range(n):
             for j in range(n):
-                M[i, j] = self.K_function.calc(X[i, :].T, X[j, :].T)
+                M[i, j] = self.K_function.calc(X[i, :], X[j, :])
 
         return M
 
@@ -40,11 +40,4 @@ class KernelPCA:
     def predict(self, components):
         print("Predict PCA")
         n = self.K.shape[0]
-        ret = numpy.zeros((n, components))
-
-        for i in range(n):
-            for j in range(components):
-                for k in range(n):
-                    ret[i, j] += self.alpha[k, j] * self.K[k, i]
-
-        return ret
+        return numpy.dot(self.K, self.alpha[:, :components])

@@ -45,7 +45,7 @@ class CrossEntropyClassifier:
                 c = P[i,j] / P[i, y[i]]
                 if j == y[i]:
                     c -= 1 / P[i, y[i]]
-                gradW[:, j] += c * X[i, :].T
+                gradW[:, j] += c * X[i, :]
 
         return gradW / n
 
