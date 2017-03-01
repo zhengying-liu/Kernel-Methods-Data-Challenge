@@ -1,5 +1,16 @@
 import numpy
 
+def build_K(X, K_function):
+    print("Buliding kernel matrix")
+    n = X.shape[0]
+    K = numpy.zeros((n, n))
+
+    for i in range(n):
+        for j in range(n):
+            K[i, j] = K_function.calc(X[i, :], X[j, :])
+
+    return K
+
 class LinearKernel:
     def __init__(self):
         pass

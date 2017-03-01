@@ -1,24 +1,15 @@
 import numpy
 
+from kernels import build_K
+
 class KernelPCA:
     def __init__(self, K_function):
         self.K_function = K_function
 
-    def _build_K(self, X):
-        print("Buliding kernel matrix")
-        n = X.shape[0]
-        M = numpy.zeros((n, n))
-
-        for i in range(n):
-            for j in range(n):
-                M[i, j] = self.K_function.calc(X[i, :], X[j, :])
-
-        return M
-
     def _center(self, X):
         n = X.shape[0]
         U = numpy.ones((n, n)) / n
-        K = self._build_K(X)
+        K = build_K(X, self.K_function)
         return (numpy.eye(n) - U) * K * (numpy.eye(n) - U)
 
     def fit(self, X):
