@@ -55,6 +55,12 @@ def plot_history(history):
 
     return f
 
+def concat_bias(X):
+    r, c = X.shape
+    aux = numpy.ones((r,c + 1))
+    aux[:,:-1] = X
+    return aux
+
 if __name__ == '__main__':
     Xtrain, Ytrain, Xtest = load_data()
 
