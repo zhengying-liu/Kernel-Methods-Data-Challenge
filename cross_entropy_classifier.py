@@ -42,9 +42,9 @@ class CrossEntropyClassifier:
         for i in range(n):
             P[i,:] = P[i,:] / sumP[i]
             for j in range(self.nclasses):
-                c = P[i,j] / P[i, y[i]]
+                c = P[i,j]
                 if j == y[i]:
-                    c -= 1 / P[i, y[i]]
+                    c -= 1
                 gradW[:, j] += c * X[i, :]
 
         return gradW / n
@@ -81,6 +81,9 @@ class CrossEntropyClassifier:
 
         for it in tqdm(range(iterations)):
             gradW = self._calc_gradient(X, y)
+            if numpy.max(numpy.absolute(gradW)) > 1e10:
+                raise Exception("Gradients are too big")
+
             self.W -= lr * gradW
             history['loss'].append(self._calc_loss(X, y))
             history['accuracy'].append(self._calc_accuracy(X, y))
