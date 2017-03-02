@@ -1,3 +1,4 @@
+from tqdm import tqdm
 import numpy
 
 from kernels import build_K
@@ -53,6 +54,8 @@ class KernelSVMBinaryClassifier:
         assert X.shape[0] == y.shape[0]
         assert X.ndim == 2 and y.ndim == 1
 
+        n = X.shape[0]
+
         if K is None:
             K = build_K(X, K_function)
         else:
@@ -64,18 +67,20 @@ class KernelSVMBinaryClassifier:
         assert self.class1 != self.class2
         ind1 = (y == self.class1)
         ind2 = (y == self.class2)
-        y[ind1] = -1
-        y[ind2] = 1
+        y2 = numpy.zeros(n)
+        y2[ind1] = -1
+        y2[ind2] = 1
 
-        alpha = self._solve_primal(y, K, reg_lambda)
+        alpha = self._solve_primal(y2, K, reg_lambda)
         ind = (alpha != 0)
         n_support_vectors = numpy.sum(ind)
-        print("support vectors: %d" % numpy.sum(ind))
+        #print("support vectors: %d" % numpy.sum(ind))
         assert n_support_vectors > 0
 
         self.X = X[ind, :]
         self.alpha = alpha[ind]
         self.K_function = K_function
+        print "Accuracy on training data: %.3f" % self._calc_accuracy(X, y)
 
     def predict(self, X):
         n = X.shape[0]
@@ -92,6 +97,10 @@ class KernelSVMBinaryClassifier:
                 y[i] = self.class1
 
         return y
+
+    def _calc_accuracy(self, X, y):
+        ypred = self.predict(X)
+        return numpy.sum(ypred == y) * 100.0 / y.shape[0]
 
 class KernelSVMOneVsOneClassifier:
     """
@@ -130,13 +139,15 @@ class KernelSVMOneVsOneClassifier:
 
         K = build_K(X, K_function)
 
+        pbar = tqdm(total=self.nclasses * (self.nclasses - 1) / 2)
         for i in range(self.nclasses):
             for j in range(i + 1, self.nclasses):
                 ind = numpy.logical_or(ind_by_class[i], ind_by_class[j])
                 partial_K = K[ind, :]
                 partial_K = partial_K[:, ind]
-                print("Fit SVM %d vs %d" % (i, j))
                 self.SVMMatrix[i][j - i - 1].fit(X[ind, :], y[ind], K_function, reg_lambda, K=partial_K)
+                pbar.update(1)
+        pbar.close()
 
         if validation is not None:
             accuracy = self._calc_accuracy(Xval, yval)
@@ -146,12 +157,17 @@ class KernelSVMOneVsOneClassifier:
         n = X.shape[0]
         scores = numpy.zeros((n, self.nclasses))
 
+        print("One vs One prediction")
+        pbar = tqdm(total=self.nclasses * (self.nclasses - 1) / 2)
         for i in range(self.nclasses):
             for j in range(i + 1, self.nclasses):
                 y = self.SVMMatrix[i][j - i - 1].predict(X)
 
                 for k, pred in enumerate(y):
                     scores[k][pred] += 1
+
+                pbar.update(1)
+        pbar.close()
 
         return numpy.argmax(scores, axis=1)
 
