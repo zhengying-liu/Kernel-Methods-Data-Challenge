@@ -3,6 +3,9 @@ import numpy
 
 from kernels import build_K
 from quadratic_program_solver import QuadraticProgramSolver
+from cvxopt import matrix, solvers
+
+solvers.options['show_progress'] = False
 
 class KernelSVMBinaryClassifier:
     """
@@ -23,17 +26,21 @@ class KernelSVMBinaryClassifier:
 
         Q = numpy.zeros((2 * n, 2 * n))
         Q[:n, :n] = K
+        Q = matrix(Q, tc='d')
 
         p = numpy.zeros(2 * n)
         p[n:] = 1.0 / (2 * reg_lambda * n)
+        p = matrix(p, tc='d')
 
         A = numpy.zeros((2 * n, 2 * n))
         A[:n, :n] = -(K * y).T
         A[:n, n:] = -numpy.eye(n)
         A[n:, n:] = -numpy.eye(n)
+        A = matrix(A, tc='d')
 
         b = numpy.zeros(2 * n)
         b[:n] = -1
+        b = matrix(b, tc='d')
 
         return Q, p, A, b
 
@@ -44,7 +51,9 @@ class KernelSVMBinaryClassifier:
         w0 = numpy.zeros(2 * n)
         w0[n:] = 2
         solver = QuadraticProgramSolver()
-        w = solver.barrier_method(Q, p, A, b, w0, 2, 1e-5)
+        #w = solver.barrier_method(Q, p, A, b, w0, 2, 1e-5)
+        w = solvers.qp(Q, p, A, b)['x']
+        w = numpy.array(w)[:,0]
 
         alpha = w[:n]
         return alpha
@@ -59,7 +68,7 @@ class KernelSVMBinaryClassifier:
         if K is None:
             K = build_K(X, K_function)
         else:
-            assert K.ndim == 2 and K.shape[0] == K.shape[1]
+            assert K.ndim == 2 and K.shape[0] == n and K.shape[1] == n
 
         # change y to -1/1
         self.class1 = numpy.min(y)
@@ -67,6 +76,8 @@ class KernelSVMBinaryClassifier:
         assert self.class1 != self.class2
         ind1 = (y == self.class1)
         ind2 = (y == self.class2)
+        #print "points of class %d : %d" % (self.class1, numpy.sum(ind1))
+        #print "points of class %d : %d" % (self.class2, numpy.sum(ind2))
         y2 = numpy.zeros(n)
         y2[ind1] = -1
         y2[ind2] = 1
@@ -74,9 +85,8 @@ class KernelSVMBinaryClassifier:
         alpha = self._solve_primal(y2, K, reg_lambda)
         ind = (alpha != 0)
         n_support_vectors = numpy.sum(ind)
-        #print("support vectors: %d" % numpy.sum(ind))
+        print("support vectors: %d (of %d)" % (numpy.sum(ind), n))
         assert n_support_vectors > 0
-
         self.X = X[ind, :]
         self.alpha = alpha[ind]
         self.K_function = K_function
