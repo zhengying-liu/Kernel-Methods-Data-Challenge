@@ -79,7 +79,7 @@ class KernelSVMBinaryClassifier:
 
     def predict(self, X):
         n = X.shape[0]
-        y = numpy.zeros(n)
+        y = numpy.zeros(n, dtype=numpy.int32)
 
         for i in range(n):
             pred = 0
@@ -148,12 +148,12 @@ class KernelSVMOneVsOneClassifier:
 
         for i in range(self.nclasses):
             for j in range(i + 1, self.nclasses):
-                y = self.SVMMatrix[i][j].predict(X)
+                y = self.SVMMatrix[i][j - i - 1].predict(X)
 
                 for k, pred in enumerate(y):
                     scores[k][pred] += 1
 
-        return np.argmax(scores, axis=1)
+        return numpy.argmax(scores, axis=1)
 
     def _calc_accuracy(self, X, y):
         ypred = self.predict(X)
