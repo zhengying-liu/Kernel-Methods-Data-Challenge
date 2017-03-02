@@ -23,4 +23,4 @@ class GaussianKernel:
         self.sigma = sigma
 
     def calc(self, x, y):
-        return numpy.exp(-numpy.linalg.norm(x - y) ** 2) / (2 * self.sigma ** 2)
+        return numpy.exp(-numpy.linalg.norm(x - y) ** 2 / (2 * self.sigma ** 2))
