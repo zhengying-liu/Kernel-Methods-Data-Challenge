@@ -9,8 +9,8 @@ from svm import KernelSVMOneVsOneClassifier
 from utils import load_data, plot_history, write_output, concat_bias
 
 output_suffix = 'trial1'
-feature_extractor = 'raw'
-classifier = 'cross_entropy'
+feature_extractor = 'hog'
+classifier = 'svm'
 validation = 0.2
 
 print("Loading data")
@@ -42,12 +42,12 @@ if kernel_pca:
     Xtrain = X[:ntrain, :]
     Xtest = X[ntrain:, :]
 
-Xtrain = concat_bias(Xtrain)
-Xtest = concat_bias(Xtest)
-
 print("Fitting on training data")
 
 if classifier == 'cross_entropy':
+    Xtrain = concat_bias(Xtrain)
+    Xtest = concat_bias(Xtest)
+
     model = CrossEntropyClassifier(10)
     iterations = 500
     lr = 0.01
@@ -63,7 +63,7 @@ if classifier == 'cross_entropy':
     history = model.fit(Xtrain, Ytrain, best, lr)
 elif classifier == 'svm':
     model = KernelSVMOneVsOneClassifier(10)
-    kernel = LinearKernel()
+    kernel = GaussianKernel(2.5)
     reg_lambda = 0.5
     model.fit(Xtrain, Ytrain, kernel, reg_lambda, validation)
 
