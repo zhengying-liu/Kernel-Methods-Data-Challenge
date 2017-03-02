@@ -5,10 +5,13 @@ from cross_entropy_classifier import CrossEntropyClassifier
 from hog_feature_extractor import HOGFeatureExtractor
 from kernel_pca import KernelPCA
 from kernels import LinearKernel, GaussianKernel
+from svm import KernelSVMOneVsOneClassifier
 from utils import load_data, plot_history, write_output, concat_bias
 
-output_suffix = 'trial6'
-feature_extractor = 'hog'
+output_suffix = 'trial1'
+feature_extractor = 'raw'
+classifier = 'cross_entropy'
+validation = 0.2
 
 print("Loading data")
 Xtrain, Ytrain, Xtest = load_data()
@@ -17,6 +20,10 @@ if feature_extractor == 'hog':
     hog = HOGFeatureExtractor(1, 1)
     Xtrain = hog.predict(Xtrain)
     Xtest = hog.predict(Xtest)
+elif feature_extractor == 'raw':
+    pass
+else:
+    raise Exception("Unknown feature extractor")
 
 Xtrain = numpy.reshape(Xtrain, (Xtrain.shape[0], -1))
 Xtest = numpy.reshape(Xtest, (Xtest.shape[0], -1))
@@ -39,19 +46,31 @@ Xtrain = concat_bias(Xtrain)
 Xtest = concat_bias(Xtest)
 
 print("Fitting on training data")
-model = CrossEntropyClassifier(10)
-iterations = 500
-lr = 0.01
-history = model.fit(Xtrain, Ytrain, iterations, lr, 0.2, 10)
 
-best = numpy.argmax(history['val_accuracy'])
-print("Best accuracy is %.3f at iteration %d" % (history['val_accuracy'][best], best))
+if classifier == 'cross_entropy':
+    model = CrossEntropyClassifier(10)
+    iterations = 500
+    lr = 0.01
+    history = model.fit(Xtrain, Ytrain, iterations, lr, validation, 10)
 
-f = plot_history(history)
-f.savefig('plots/' + output_suffix + '.png')
+    best = numpy.argmax(history['val_accuracy'])
+    print("Best accuracy is %.3f at iteration %d" % (history['val_accuracy'][best], best))
 
-model = CrossEntropyClassifier(10)
-history = model.fit(Xtrain, Ytrain, best, lr)
+    f = plot_history(history)
+    f.savefig('plots/' + output_suffix + '.png')
+
+    model = CrossEntropyClassifier(10)
+    history = model.fit(Xtrain, Ytrain, best, lr)
+elif classifier == 'svm':
+    model = KernelSVMOneVsOneClassifier(10)
+    kernel = LinearKernel()
+    reg_lambda = 0.5
+    model.fit(Xtrain, Ytrain, kernel, reg_lambda, validation)
+
+    model = KernelSVMOneVsOneClassifier(10)
+    model.fit(Xtrain, Ytrain, kernel, reg_lambda)
+else:
+    raise Exception("Unknown classifier")
 
 print("Predicting on test data")
 Ytest = model.predict(Xtest)
