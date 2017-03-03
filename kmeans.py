@@ -17,7 +17,7 @@ class Kmeans:
         self.z = None
         self.mu = None
         
-    def assignCluster(self, data, n_data):
+    def _assignCluster(self, data, n_data):
         self.z = np.zeros(n_data, dtype=int)
         for i in range(n_data):
             dist_min = np.linalg.norm(data[i, :] - np.array(self.mu[0, :])[0])
@@ -27,7 +27,7 @@ class Kmeans:
                     dist_min = dist
                     self.z[i] = int(k)
     
-    def updateCenter(self, data, n_data):
+    def _updateCenter(self, data, n_data):
         count = np.zeros(self.nclasses)
         self.mu = np.matrix(np.zeros((self.nclasses, self.dim)))
         for i in range(n_data):
@@ -44,8 +44,8 @@ class Kmeans:
             self.dim = dim
             self.mu = np.matrix(np.zeros((self.nclasses, self.dim)))
         for _ in range(steps):
-            self.assignCluster(data, n_data)
-            self.updateCenter(data, n_data)
+            self._assignCluster(data, n_data)
+            self._updateCenter(data, n_data)
     
 if __name__ == '__main__':
     my_data = np.array([[1, 2, 3], [4, 5, 6], [1, 2, 4], [-1, 0, -1]])
