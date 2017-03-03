@@ -68,10 +68,10 @@ class CrossEntropyClassifier:
         if validation is not None:
             assert validation > 0 and validation < 1
             split_idx = int(validation * n)
-            Xval = X[split_idx:,:]
-            yval = y[split_idx:]
-            X = X[:split_idx,:]
-            y = y[:split_idx]
+            X = X[split_idx:,:]
+            y = y[split_idx:]
+            Xval = X[:split_idx,:]
+            yval = y[:split_idx]
             history['val_loss'] = [self._calc_loss(Xval, yval)]
             history['val_accuracy'] = [self._calc_accuracy(Xval, yval)]
             best_validation_index = 0
