@@ -83,7 +83,7 @@ class KernelSVMBinaryClassifier:
         y2[ind2] = 1
 
         alpha = self._solve_primal(y2, K, reg_lambda)
-        ind = (alpha != 0)
+        ind = (numpy.abs(alpha) > 1e-9)
         n_support_vectors = numpy.sum(ind)
         print("support vectors: %d (of %d)" % (numpy.sum(ind), n))
         assert n_support_vectors > 0
@@ -92,7 +92,7 @@ class KernelSVMBinaryClassifier:
         self.K_function = K_function
         print "Accuracy on training data: %.3f" % self._calc_accuracy(X, y)
 
-    def predict(self, X):
+    def predict(self, X, confidence=False):
         n = X.shape[0]
         y = numpy.zeros(n, dtype=numpy.int32)
 
@@ -101,10 +101,13 @@ class KernelSVMBinaryClassifier:
             x = X[i,:]
             for v, alpha in zip(self.X, self.alpha):
                 pred += alpha * self.K_function.calc(v, x)
-            if pred >= 0:
-                y[i] = self.class2
+            if confidence:
+                y[i] = pred
             else:
-                y[i] = self.class1
+                if pred >= 0:
+                    y[i] = self.class2
+                else:
+                    y[i] = self.class1
 
         return y
 
@@ -137,10 +140,10 @@ class KernelSVMOneVsOneClassifier:
         if validation is not None:
             assert validation > 0 and validation < 1
             split_idx = int(validation * n)
-            Xval = X[split_idx:,:]
-            yval = y[split_idx:]
-            X = X[:split_idx,:]
-            y = y[:split_idx]
+            X = X[split_idx:,:]
+            y = y[split_idx:]
+            Xval = X[:split_idx,:]
+            yval = y[:split_idx]
 
         ind_by_class = []
         for i in range(self.nclasses):
@@ -178,6 +181,59 @@ class KernelSVMOneVsOneClassifier:
 
                 pbar.update(1)
         pbar.close()
+
+        return numpy.argmax(scores, axis=1)
+
+    def _calc_accuracy(self, X, y):
+        ypred = self.predict(X)
+        return numpy.sum(ypred == y) * 100.0 / y.shape[0]
+
+class KernelSVMOneVsAllClassifier:
+    """
+    nclasses: number of classes (assumed between 0 and nclasses - 1)
+    SVMova: list of one vs all classifiers
+    """
+    def __init__(self, nclasses):
+        self.nclasses = nclasses
+        self.SVMova = []
+
+        for i in range(self.nclasses):
+            self.SVMova.append(KernelSVMBinaryClassifier())
+
+    def fit(self, X, y, K_function, reg_lambda, validation=None):
+        print("Fit KernelSVMOneVsAllClassifier")
+        assert X.shape[0] == y.shape[0]
+        assert X.ndim == 2 and y.ndim == 1
+
+        n = X.shape[0]
+
+        if validation is not None:
+            assert validation > 0 and validation < 1
+            split_idx = int(validation * n)
+            X = X[split_idx:,:]
+            y = y[split_idx:]
+            Xval = X[:split_idx,:]
+            yval = y[:split_idx]
+
+        K = build_K(X, K_function)
+
+        for i in tqdm(range(self.nclasses)):
+            y2 = -numpy.ones(y.shape[0])
+            ind = (y == i)
+            y2[ind] = 1
+            self.SVMova[i].fit(X, y2, K_function, reg_lambda, K=K)
+
+        if validation is not None:
+            accuracy = self._calc_accuracy(Xval, yval)
+            print("Accuracy in validation data is %.3f" % accuracy)
+
+    def predict(self, X):
+        n = X.shape[0]
+        scores = numpy.zeros((n, self.nclasses))
+
+        print("One vs All prediction")
+        for i in tqdm(range(self.nclasses)):
+            scores[:, i] = self.SVMova[i].predict(X, confidence=True)
 
         return numpy.argmax(scores, axis=1)
 
