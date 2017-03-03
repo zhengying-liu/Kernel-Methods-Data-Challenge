@@ -140,17 +140,20 @@ class KernelSVMOneVsOneClassifier:
         if validation is not None:
             assert validation > 0 and validation < 1
             split_idx = int(validation * n)
-            X = X[split_idx:,:]
-            y = y[split_idx:]
             Xval = X[:split_idx,:]
             yval = y[:split_idx]
+            Xtrain = X[split_idx:,:]
+            ytrain = y[split_idx:]
+        else:
+            Xtrain = X
+            ytrain = y
 
         ind_by_class = []
         for i in range(self.nclasses):
-            ind = (y == i)
+            ind = (ytrain == i)
             ind_by_class.append(ind)
 
-        K = build_K(X, K_function)
+        K = build_K(Xtrain, K_function)
 
         pbar = tqdm(total=self.nclasses * (self.nclasses - 1) / 2)
         for i in range(self.nclasses):
@@ -158,7 +161,7 @@ class KernelSVMOneVsOneClassifier:
                 ind = numpy.logical_or(ind_by_class[i], ind_by_class[j])
                 partial_K = K[ind, :]
                 partial_K = partial_K[:, ind]
-                self.SVMMatrix[i][j - i - 1].fit(X[ind, :], y[ind], K_function, reg_lambda, K=partial_K)
+                self.SVMMatrix[i][j - i - 1].fit(Xtrain[ind, :], ytrain[ind], K_function, reg_lambda, K=partial_K)
                 pbar.update(1)
         pbar.close()
 
@@ -210,18 +213,21 @@ class KernelSVMOneVsAllClassifier:
         if validation is not None:
             assert validation > 0 and validation < 1
             split_idx = int(validation * n)
-            X = X[split_idx:,:]
-            y = y[split_idx:]
             Xval = X[:split_idx,:]
             yval = y[:split_idx]
+            Xtrain = X[split_idx:,:]
+            ytrain = y[split_idx:]
+        else:
+            Xtrain = X
+            ytrain = y
 
-        K = build_K(X, K_function)
+        K = build_K(Xtrain, K_function)
 
         for i in tqdm(range(self.nclasses)):
-            y2 = -numpy.ones(y.shape[0])
-            ind = (y == i)
+            y2 = -numpy.ones(ytrain.shape[0])
+            ind = (ytrain == i)
             y2[ind] = 1
-            self.SVMova[i].fit(X, y2, K_function, reg_lambda, K=K)
+            self.SVMova[i].fit(Xtrain, y2, K_function, reg_lambda, K=K)
 
         if validation is not None:
             accuracy = self._calc_accuracy(Xval, yval)

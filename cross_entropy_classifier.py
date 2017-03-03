@@ -68,25 +68,28 @@ class CrossEntropyClassifier:
         if validation is not None:
             assert validation > 0 and validation < 1
             split_idx = int(validation * n)
-            X = X[split_idx:,:]
-            y = y[split_idx:]
+            Xtrain = X[split_idx:,:]
+            ytrain = y[split_idx:]
             Xval = X[:split_idx,:]
             yval = y[:split_idx]
             history['val_loss'] = [self._calc_loss(Xval, yval)]
             history['val_accuracy'] = [self._calc_accuracy(Xval, yval)]
             best_validation_index = 0
+        else:
+            Xtrain = X
+            ytrain = y
 
-        history['loss'] = [self._calc_loss(X, y)]
-        history['accuracy'] = [self._calc_accuracy(X, y)]
+        history['loss'] = [self._calc_loss(Xtrain, ytrain)]
+        history['accuracy'] = [self._calc_accuracy(Xtrain, ytrain)]
 
         for it in tqdm(range(iterations)):
-            gradW = self._calc_gradient(X, y)
+            gradW = self._calc_gradient(Xtrain, ytrain)
             if numpy.max(numpy.absolute(gradW)) > 1e10:
                 raise Exception("Gradients are too big")
 
             self.W -= lr * gradW
-            history['loss'].append(self._calc_loss(X, y))
-            history['accuracy'].append(self._calc_accuracy(X, y))
+            history['loss'].append(self._calc_loss(Xtrain, ytrain))
+            history['accuracy'].append(self._calc_accuracy(Xtrain, ytrain))
 
             if validation is not None:
                 history['val_loss'].append(self._calc_loss(Xval, yval))
