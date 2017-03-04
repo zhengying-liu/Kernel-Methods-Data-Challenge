@@ -16,7 +16,7 @@ class FisherVector:
     mu: centers of different classes
     sigma: diagonal values of the covariance matrix, represented by a 2d numpy array
     (Note that our sigma is sigma^2 in the paper)
-    stat0: statistics 0, 1d array of length nclasss
+    stat0: statistics 0, 1d array of length nclassses
     stat1: statistics 1, 2d array of shape (nclasses, dim)
     stat2: statistics 2, 2d array of shape (nclasses, dim)
     fv: Fisher vector, 1d array of length nclasses * (2 * dim + 1)
@@ -90,7 +90,7 @@ class FisherVector:
         self._normalize()
         
 if __name__ == '__main__':
-    my_data = np.array([[1, 2, 3], [4, 5, 6], [1, 2, 4], [5, 6, 77]])
-    fisher_vector = FisherVector(nclasses=2)
+    my_data = np.array([[1, 2, 3], [4, 5, 7], [1, 2, 4], [5, 6, 77], [2, 3, 4]])
+    fisher_vector = FisherVector(nclasses=3)
     fisher_vector.build_fv(my_data)
     print(fisher_vector.fv)
