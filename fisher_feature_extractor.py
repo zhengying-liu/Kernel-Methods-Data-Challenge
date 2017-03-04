@@ -24,7 +24,7 @@ class FisherFeatureExtractor:
         local_features = None
         if self.local_feature_extractor == 'hog':
             hog = HOGFeatureExtractor(nbins=self.nbins, unsigned=self.unsigned)
-            local_features = hog.predict(X, twoDim=True)
+            local_features = hog.predict(X, unflatten=True)
         else:
             raise Exception("Unknown local feature extractor")
         
