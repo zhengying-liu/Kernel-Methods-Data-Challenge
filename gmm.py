@@ -8,7 +8,6 @@ import numpy as np
 from kmeans import Kmeans
 from gamma import gamma
 
-
 class Gmm:
     """
     nclasses: number of classes (assumed between 0 and nclasses - 1)
