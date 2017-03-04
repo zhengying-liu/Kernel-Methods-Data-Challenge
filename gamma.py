@@ -2,7 +2,7 @@
 Some utility functions to compute gamma, which is used in Gaussian Mixture Model and Fisher Vector.
 """
 
-import numpy as np
+import numpy
 
 def logsumexp(v):
     """
@@ -17,10 +17,10 @@ def logsumexp(v):
     `float`, log(sum(exp(v)))
     """
     max_v = max(v)
-    new_v = np.empty((len(v)))
+    new_v = numpy.empty((len(v)))
     for i in range(len(v)):
         new_v[i] = v[i] - max_v
-    return max_v + np.log(sum(np.exp(new_v)))
+    return max_v + numpy.log(sum(numpy.exp(new_v)))
 
 def li(x, pi, mu, sigma):
     """
@@ -36,9 +36,9 @@ def li(x, pi, mu, sigma):
     `float`, log(pi Normal(x; mu, sigma))
     """
     d = len(x)
-    x_temp = np.matrix(x.reshape(d, 1)) - mu
-    sigma_inv = np.linalg.inv(sigma)
-    return np.log(pi) - 0.5 * d * np.log(2 * np.pi) - 0.5 * sum(np.log(np.linalg.eigvals(sigma))) - 0.5 * (x_temp.transpose() * sigma_inv * x_temp)[0, 0]
+    x_temp = numpy.matrix(x.reshape(d, 1)) - mu
+    sigma_inv = numpy.linalg.inv(sigma)
+    return numpy.log(pi) - 0.5 * d * numpy.log(2 * numpy.pi) - 0.5 * sum(numpy.log(numpy.linalg.eigvals(sigma))) - 0.5 * (x_temp.transpose() * sigma_inv * x_temp)[0, 0]
 
 def gamma(x, pi, mu, sigma):
     """
@@ -55,12 +55,12 @@ def gamma(x, pi, mu, sigma):
     `numpy.array`, the ith term  = pi_i Normal(x; mu_i, sigma_i) / sum_{j = 1}^{K} pi_j Normal(x; mu_j, sigma_j)
     """
     K = len(sigma)
-    l = np.empty(K)
+    l = numpy.empty(K)
     for i in range(K):
-        l[i] = li(x, pi[i], mu[i, :], np.matrix(sigma[i]))
+        l[i] = li(x, pi[i], mu[i, :], numpy.matrix(sigma[i]))
     logsum = logsumexp(l)
     
-    result = np.empty(K)
+    result = numpy.empty(K)
     for i in range(K):
-        result[i] = np.exp(l[i] - logsum)
-    return np.exp(logsum), result
+        result[i] = numpy.exp(l[i] - logsum)
+    return numpy.exp(logsum), result

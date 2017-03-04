@@ -3,7 +3,7 @@ Fisher Vector.
 See https://hal.inria.fr/hal-00779493v3/document page 14 algorithm 1 for more details.
 """
 
-import numpy as np
+import numpy
 
 from gamma import gamma
 from gmm import Gmm
@@ -43,16 +43,16 @@ class FisherVector:
         
     def _compute_statistics(self, data):
         ndata = len(data)
-        gamma_K_N = np.empty((self.nclasses, ndata))
-        sigma_matrix = np.zeros((self.nclasses, self.dim, self.dim))
+        gamma_K_N = numpy.empty((self.nclasses, ndata))
+        sigma_matrix = numpy.zeros((self.nclasses, self.dim, self.dim))
         for k in range(self.nclasses):
-            sigma_matrix[k] = np.diag(self.sigma[k])
+            sigma_matrix[k] = numpy.diag(self.sigma[k])
         for t in range(ndata):
             gamma_K_N[:,t] = gamma(data[t], self.pi, self.mu, sigma_matrix)[1]
             
-        self.stat0 = np.zeros(self.nclasses)
-        self.stat1 = np.zeros((self.nclasses, self.dim))
-        self.stat2 = np.zeros((self.nclasses, self.dim))
+        self.stat0 = numpy.zeros(self.nclasses)
+        self.stat1 = numpy.zeros((self.nclasses, self.dim))
+        self.stat2 = numpy.zeros((self.nclasses, self.dim))
         for t in range(ndata):
             for k in range(self.nclasses):
                 self.stat0[k] += gamma_K_N[k, t]
@@ -61,27 +61,27 @@ class FisherVector:
     
     def _compute_signature(self, data):
         ndata = len(data)
-        self.fv = np.zeros(self.nclasses * (2 * self.dim + 1))
+        self.fv = numpy.zeros(self.nclasses * (2 * self.dim + 1))
         for k in range(self.nclasses):
-            self.fv[k] = (self.stat0[k] - ndata * self.pi[k]) / np.sqrt(self.pi[k])
+            self.fv[k] = (self.stat0[k] - ndata * self.pi[k]) / numpy.sqrt(self.pi[k])
         
         offset = self.nclasses
         for k in range(self.nclasses):
-            signature_temp = (self.stat1[k, :] - self.mu[k, :] * self.stat0[k])/ (np.sqrt(self.pi[k] * self.sigma[k, :]))
+            signature_temp = (self.stat1[k, :] - self.mu[k, :] * self.stat0[k])/ (numpy.sqrt(self.pi[k] * self.sigma[k, :]))
             for d in range(self.dim):
                 self.fv[offset + d] = signature_temp[0, d]
             offset += self.dim
         
         for k in range(self.nclasses):
-            signature_temp = (self.stat2[k, :] * self.stat2[k, :] - 2 * self.mu[k, :][:, 0] * self.stat1[k, :] + (self.mu[k, :][:, 0] * self.mu[k, :] - self.sigma[k, :]) * self.stat0[k]) / (np.sqrt(2 * self.pi[k]) * self.sigma[k, :])
+            signature_temp = (self.stat2[k, :] * self.stat2[k, :] - 2 * self.mu[k, :][:, 0] * self.stat1[k, :] + (self.mu[k, :][:, 0] * self.mu[k, :] - self.sigma[k, :]) * self.stat0[k]) / (numpy.sqrt(2 * self.pi[k]) * self.sigma[k, :])
             for d in range(self.dim):
                 self.fv[offset + d] = signature_temp[0, d]
             offset += self.dim
         
     def _normalize(self):
         for i in range(len(self.fv)):
-            self.fv[i] = np.sign(self.fv[i]) * np.sqrt(np.abs(self.fv[i]))
-        self.fv = self.fv / np.linalg.norm(self.fv, ord=2)
+            self.fv[i] = numpy.sign(self.fv[i]) * numpy.sqrt(numpy.abs(self.fv[i]))
+        self.fv = self.fv / numpy.linalg.norm(self.fv, ord=2)
         
     def predict(self, data):
         self._gmm_fit(data)
@@ -91,6 +91,6 @@ class FisherVector:
         return self.fv
         
 if __name__ == '__main__':
-    my_data = np.array([[1, 2, 3], [4, 5, 7], [1, 2, 4], [5, 6, 77], [2, 3, 4]])
+    my_data = numpy.array([[1, 2, 3], [4, 5, 7], [1, 2, 4], [5, 6, 77], [2, 3, 4]])
     fisher_vector = FisherVector(nclasses=3)
     print(fisher_vector.predict(my_data))
