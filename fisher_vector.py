@@ -91,7 +91,6 @@ class FisherVector:
         
 if __name__ == '__main__':
     my_data = np.array([[1, 2, 3], [4, 5, 6], [1, 2, 4], [5, 6, 77]])
-    my_data.reshape(12)
     fisher_vector = FisherVector(nclasses=2)
     fisher_vector.build_fv(my_data)
     print(fisher_vector.fv)
