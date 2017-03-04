@@ -6,8 +6,8 @@ import numpy
 # http://www.learnopencv.com/histogram-of-oriented-gradients/
 class HOGFeatureExtractor:
     """
-    xstep: step on the horizontal direction when displacing the center
-    ystep: step on the vertical direction when displacing the center
+    nbins: number of bins that will be used
+    unsigned: if True the sign of the angle is not considered
     """
     def __init__(self, nbins=9, unsigned=True):
         self.nbins = nbins
@@ -42,11 +42,8 @@ class HOGFeatureExtractor:
                 else:
                     angle = numpy.arctan2(dx, dy)
                     angle = (angle + numpy.pi) / (2 * numpy.pi / self.nbins)
-                if numpy.isnan(angle):
-                    print i, j
-                    print dx, dy, angle
-                bin_pos = int(numpy.floor(angle))
 
+                bin_pos = int(numpy.floor(angle))
                 # handle corner case
                 if bin_pos == self.nbins:
                     bin_pos = 0
