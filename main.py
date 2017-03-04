@@ -9,8 +9,8 @@ from kernels import LinearKernel, GaussianKernel, HistogramIntersectionKernel, L
 from svm import KernelSVMOneVsOneClassifier, KernelSVMOneVsAllClassifier
 from utils import load_data, plot_history, write_output, concat_bias
 
-output_suffix = 'trial13'
-feature_extractor = 'hog'
+output_suffix = 'trial14'
+feature_extractor = 'hog_fisher'
 classifier = 'svm_ovo'
 validation = 0.2
 
@@ -22,7 +22,7 @@ if feature_extractor == 'hog':
     Xtrain = hog.predict(Xtrain)
     Xtest = hog.predict(Xtest)
 elif feature_extractor == 'hog_fisher':
-    fisher = FisherFeatureExtractor(nclasses=10)
+    fisher = FisherFeatureExtractor(nclasses=5)
     Xtrain = fisher.predict(Xtrain)
     Xtest = fisher.predict(Xtest)
 elif feature_extractor == 'raw':
