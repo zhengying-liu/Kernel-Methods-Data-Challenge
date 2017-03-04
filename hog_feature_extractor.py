@@ -87,22 +87,25 @@ class HOGFeatureExtractor:
 
         return ret.flatten()
 
-    def _calc_gradient_for_image(self, I):
+    def _calc_gradient_for_image(self, I, unflatten=False):
         nchannels = I.shape[2]
         ret = []
 
         for i in range(nchannels):
             ret.append(self._calc_gradient_for_channel(I[:,:,i]))
 
+        if unflatten:
+            return numpy.array(ret)
         return numpy.array(ret).flatten()
 
-    def predict(self, X):
+    def predict(self, X, unflatten=False):
         assert X.ndim == 4
         print("Extracting HOG features")
         n = X.shape[0]
         ret = []
 
         for i in tqdm(range(n)):
-            ret.append(self._calc_gradient_for_image(X[i,:,:,:]))
+            ret.append(self._calc_gradient_for_image(X[i,:,:,:], unflatten))
 
         return numpy.array(ret)
+    

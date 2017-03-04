@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy
 
 from cross_entropy_classifier import CrossEntropyClassifier
+from fisher_feature_extractor import FisherFeatureExtractor
 from hog_feature_extractor import HOGFeatureExtractor
 from kernel_pca import KernelPCA
 from kernels import LinearKernel, GaussianKernel, HistogramIntersectionKernel, LaplacianRBFKernel, SublinearRBFKernel
@@ -20,6 +21,10 @@ if feature_extractor == 'hog':
     hog = HOGFeatureExtractor()
     Xtrain = hog.predict(Xtrain)
     Xtest = hog.predict(Xtest)
+elif feature_extractor == 'hog_fisher':
+    fisher = FisherFeatureExtractor(nclasses=10)
+    Xtrain = fisher.predict(Xtrain)
+    Xtest = fisher.predict(Xtest)
 elif feature_extractor == 'raw':
     pass
 else:
