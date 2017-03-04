@@ -6,7 +6,7 @@ import numpy as np
 
 class Kmeans:
     """
-    nclusters: number of classes (assumed between 0 and nclusters - 1)
+    nclusters: number of clusters (assumed between 0 and nclusters - 1)
     dim: dimension of the space in which the data lives
     z: assignment
     mu: centers of different clusters
