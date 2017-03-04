@@ -4,20 +4,20 @@ import numpy
 from cross_entropy_classifier import CrossEntropyClassifier
 from hog_feature_extractor import HOGFeatureExtractor
 from kernel_pca import KernelPCA
-from kernels import LinearKernel, GaussianKernel
-from svm import KernelSVMOneVsOneClassifier
+from kernels import LinearKernel, GaussianKernel, HistogramIntersectionKernel, LaplacianRBFKernel, SublinearRBFKernel
+from svm import KernelSVMOneVsOneClassifier, KernelSVMOneVsAllClassifier
 from utils import load_data, plot_history, write_output, concat_bias
 
-output_suffix = 'trial1'
+output_suffix = 'trial13'
 feature_extractor = 'hog'
-classifier = 'svm'
+classifier = 'svm_ovo'
 validation = 0.2
 
 print("Loading data")
 Xtrain, Ytrain, Xtest = load_data()
 
 if feature_extractor == 'hog':
-    hog = HOGFeatureExtractor(1, 1)
+    hog = HOGFeatureExtractor()
     Xtrain = hog.predict(Xtrain)
     Xtest = hog.predict(Xtest)
 elif feature_extractor == 'raw':
@@ -27,6 +27,9 @@ else:
 
 Xtrain = numpy.reshape(Xtrain, (Xtrain.shape[0], -1))
 Xtest = numpy.reshape(Xtest, (Xtest.shape[0], -1))
+
+print(Xtrain.shape)
+print(Xtest.shape)
 
 kernel_pca = False
 
@@ -43,12 +46,12 @@ if kernel_pca:
     Xtest = X[ntrain:, :]
 
 print("Fitting on training data")
-
+nclasses = 10
 if classifier == 'cross_entropy':
     Xtrain = concat_bias(Xtrain)
     Xtest = concat_bias(Xtest)
 
-    model = CrossEntropyClassifier(10)
+    model = CrossEntropyClassifier(nclasses)
     iterations = 500
     lr = 0.01
     history = model.fit(Xtrain, Ytrain, iterations, lr, validation, 10)
@@ -59,15 +62,27 @@ if classifier == 'cross_entropy':
     f = plot_history(history)
     f.savefig('plots/' + output_suffix + '.png')
 
-    model = CrossEntropyClassifier(10)
+    model = CrossEntropyClassifier(nclasses)
     history = model.fit(Xtrain, Ytrain, best, lr)
-elif classifier == 'svm':
-    model = KernelSVMOneVsOneClassifier(10)
-    kernel = GaussianKernel(2.5)
+elif classifier == 'svm_ovo':
+    model = KernelSVMOneVsOneClassifier(nclasses)
+    #kernel = GaussianKernel(0.6)
+    #kernel = HistogramIntersectionKernel(0.25)
+    kernel = LaplacianRBFKernel(1)
+    #kernel = SublinearRBFKernel(4)
+    #kernel = LinearKernel()
     reg_lambda = 0.5
     model.fit(Xtrain, Ytrain, kernel, reg_lambda, validation)
 
-    model = KernelSVMOneVsOneClassifier(10)
+    model = KernelSVMOneVsOneClassifier(nclasses)
+    model.fit(Xtrain, Ytrain, kernel, reg_lambda)
+elif classifier == 'svm_ova':
+    model = KernelSVMOneVsAllClassifier(nclasses)
+    kernel = GaussianKernel(1.5)
+    reg_lambda = 0.5
+    model.fit(Xtrain, Ytrain, kernel, reg_lambda, validation)
+
+    model = KernelSVMOneVsAllClassifier(nclasses)
     model.fit(Xtrain, Ytrain, kernel, reg_lambda)
 else:
     raise Exception("Unknown classifier")
