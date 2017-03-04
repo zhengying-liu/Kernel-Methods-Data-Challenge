@@ -83,14 +83,14 @@ class FisherVector:
             self.fv[i] = np.sign(self.fv[i]) * np.sqrt(np.abs(self.fv[i]))
         self.fv = self.fv / np.linalg.norm(self.fv, ord=2)
         
-    def build_fv(self, data):
+    def predict(self, data):
         self._gmm_fit(data)
         self._compute_statistics(data)
         self._compute_signature(data)
         self._normalize()
+        return self.fv
         
 if __name__ == '__main__':
     my_data = np.array([[1, 2, 3], [4, 5, 7], [1, 2, 4], [5, 6, 77], [2, 3, 4]])
     fisher_vector = FisherVector(nclasses=3)
-    fisher_vector.build_fv(my_data)
-    print(fisher_vector.fv)
+    print(fisher_vector.predict(my_data))
