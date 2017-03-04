@@ -1,5 +1,7 @@
 from tqdm import tqdm
 import numpy
+import random
+random.seed(123)
 
 from kernels import build_K
 from quadratic_program_solver import QuadraticProgramSolver
@@ -44,18 +46,67 @@ class KernelSVMBinaryClassifier:
 
         return Q, p, A, b
 
+    # Quadractic programming
     def _solve_primal(self, y, K, reg_lambda):
         n = K.shape[0]
         Q, p, A, b = self._svm_primal(y, K, reg_lambda)
 
         w0 = numpy.zeros(2 * n)
         w0[n:] = 2
-        solver = QuadraticProgramSolver()
+        #solver = QuadraticProgramSolver()
         #w = solver.barrier_method(Q, p, A, b, w0, 2, 1e-5)
         w = solvers.qp(Q, p, A, b)['x']
         w = numpy.array(w)[:,0]
 
         alpha = w[:n]
+        return alpha
+
+    # SMO algorithm
+    def _solve_dual(self, y, K, reg_lambda, iterations=100):
+        #print("Starting SMO to solve dual")
+        n = y.shape[0]
+        alpha = numpy.zeros(n)
+
+        #result = 2 * numpy.dot(alpha, y) - numpy.dot(numpy.dot(alpha, K), alpha)
+        #print "Initial Result dual: %.5f" % result
+
+        for it in range(iterations):
+            alpha_prev = alpha.copy()
+
+            for i in range(0,n):
+                #i = random.randint(0,n - 1)
+                j = random.randint(0,n - 2)
+                if j >= i:
+                    j += 1
+
+                s = alpha[i] + alpha[j]
+                L = max(-(1 - y[i]) / (4 * reg_lambda * n), s - (1 + y[j]) / (4 * reg_lambda * n))
+                H = min((1 + y[i]) / (4 * reg_lambda * n), s + (1 - y[j]) / (4 * reg_lambda * n))
+
+                alpha_new = y[j] - y[i] + s * (K[i, j] - K[j, j])
+                for k in range(0,n):
+                    if k != i and k != j:
+                        alpha_new += (K[i, k] - K[j, k]) * alpha[k]
+                alpha_new /= 2 * K[i, j] - K[i, i] - K[j, j]
+
+                if L <= alpha_new and alpha_new <= H:
+                    alpha[i] = alpha_new
+                elif alpha_new < L:
+                    alpha[i] = L
+                else:
+                    alpha[i] = H
+                alpha[j] = s - alpha[i]
+
+            diff = numpy.linalg.norm(alpha - alpha_prev)
+            if diff < 1e-4:
+                break
+
+            #result = 2 * numpy.dot(alpha, y) - numpy.dot(numpy.dot(alpha, K), alpha)
+            #print "Result dual: %.5f, diff = %.5f" % (result, diff)
+
+        #result = 2 * numpy.dot(alpha, y) - numpy.dot(numpy.dot(alpha, K), alpha)
+        #print "Final Result dual: %.5f" % result
+
         return alpha
 
     def fit(self, X, y, K_function, reg_lambda, K=None):
@@ -82,10 +133,14 @@ class KernelSVMBinaryClassifier:
         y2[ind1] = -1
         y2[ind2] = 1
 
-        alpha = self._solve_primal(y2, K, reg_lambda)
+        reg_lambda = float(reg_lambda)
+        #alpha = self._solve_primal(y2, K, reg_lambda)
+        #print alpha
+        alpha = self._solve_dual(y2, K, reg_lambda)
+        #print alpha
         ind = (numpy.abs(alpha) > 1e-9)
         n_support_vectors = numpy.sum(ind)
-        print("support vectors: %d (of %d)" % (numpy.sum(ind), n))
+        #print("support vectors: %d (of %d)" % (numpy.sum(ind), n))
         assert n_support_vectors > 0
         self.X = X[ind, :]
         self.alpha = alpha[ind]
@@ -246,3 +301,14 @@ class KernelSVMOneVsAllClassifier:
     def _calc_accuracy(self, X, y):
         ypred = self.predict(X)
         return numpy.sum(ypred == y) * 100.0 / y.shape[0]
+
+if __name__ == '__main__':
+    from kernels import GaussianKernel
+    #X = numpy.array([[3,4],[1,3],[2,2]])
+    X = numpy.array([[-2,0],[-1,0],[1,0]])
+    y = numpy.array([-1,-1,1])
+
+    model = KernelSVMBinaryClassifier()
+    model.fit(X, y, GaussianKernel(0.5), 0.5)
+    print model.X
+    print model.alpha
