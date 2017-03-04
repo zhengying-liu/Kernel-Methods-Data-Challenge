@@ -27,7 +27,7 @@ class Gmm:
     def _kmeans_init(self, data):
         self.dim = len(data[0])
         kmeans = Kmeans(nclusters=self.nclasses)
-        kmeans.apply(data=data, niter=10)
+        kmeans.fit(data=data, niter=10)
         self.mu = kmeans.mu
         self.sigma = np.ones(shape=(self.nclasses, self.dim))
 
@@ -66,7 +66,7 @@ class Gmm:
         self.mu = mu_new
         self.sigma = sigma_new
         
-    def apply(self, data, niter=10):
+    def fit(self, data, niter=10):
         self._kmeans_init(data)
         for _ in range(niter):
             self._EM_iterate_once(data)
@@ -74,7 +74,7 @@ class Gmm:
 if __name__ == '__main__':
     my_data = np.array([[1, 2, 3], [4, 5, 6], [1, 2, 4], [5, 6, 77]])
     model = Gmm(nclasses=2)
-    model.apply(data=my_data, niter=10)
+    model.fit(data=my_data, niter=10)
     print(model.dim)
     print(model.pi)
     print(model.mu)

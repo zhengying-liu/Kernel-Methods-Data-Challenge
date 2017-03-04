@@ -42,7 +42,7 @@ class Kmeans:
                 if count[k] != 0:
                     self.mu[k, d] /= count[k]
     
-    def apply(self, data, niter=1, warm_start=False):
+    def fit(self, data, niter=1, warm_start=False):
         if not(warm_start):
             self.dim = len(data[0])
             self.mu = np.matrix(np.zeros((self.nclusters, self.dim)))
@@ -53,6 +53,6 @@ class Kmeans:
 if __name__ == '__main__':
     my_data = np.array([[1, 2, 3], [4, 5, 6], [1, 2, 4], [-1, 0, -1]])
     model = Kmeans(nclusters=2)
-    model.apply(data=my_data, niter=3)
+    model.fit(data=my_data, niter=3)
     print(model.z)
     print(model.mu)
