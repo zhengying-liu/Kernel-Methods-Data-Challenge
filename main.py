@@ -5,6 +5,7 @@ import os
 from cross_entropy_classifier import CrossEntropyClassifier
 from fisher_feature_extractor import FisherFeatureExtractor
 from hog_feature_extractor import HOGFeatureExtractor
+from kernel_descriptors_extractor import KernelDescriptorsExtractor
 from kernel_pca import KernelPCA
 from kernels import LinearKernel, GaussianKernel, HistogramIntersectionKernel, LaplacianRBFKernel, SublinearRBFKernel
 from svm import KernelSVMOneVsOneClassifier, KernelSVMOneVsAllClassifier
@@ -16,6 +17,7 @@ classifier = 'svm_ovo'
 validation = 0.2
 nclasses = 10
 overwrite = False
+kernel_pca = False
 
 print("Loading data")
 Xtrain, Ytrain, Xtest = load_data()
@@ -45,13 +47,13 @@ elif feature_extractor == 'kernel_descriptors':
         Xtrain = numpy.load('data/Xtrain_kdes.npy')
     else:
         Xtrain = kdes.predict(Xtrain)
-        numpy.save('data/Xtrain_kdes.npy')
+        numpy.save('data/Xtrain_kdes.npy', Xtrain)
 
     if not overwrite and os.path.isfile('data/Xtest_kdes.npy'):
         Xtest = numpy.load('data/Xtest_kdes.npy')
     else:
         Xtest = kdes.predict(Xtest)
-        numpy.save('data/Xtest_kdes.npy')
+        numpy.save('data/Xtest_kdes.npy', Xtest)
 elif feature_extractor == 'raw':
     pass
 else:
@@ -62,8 +64,6 @@ Xtest = numpy.reshape(Xtest, (Xtest.shape[0], -1))
 
 print(Xtrain.shape)
 print(Xtest.shape)
-
-kernel_pca = False
 
 if kernel_pca:
     print("Kernel PCA")
@@ -76,6 +76,8 @@ if kernel_pca:
     ntrain = Xtrain.shape[0]
     Xtrain = X[:ntrain, :]
     Xtest = X[ntrain:, :]
+    print(Xtrain.shape)
+    print(Xtest.shape)
 
 print("Fitting on training data")
 if classifier == 'cross_entropy':
