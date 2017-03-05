@@ -57,8 +57,9 @@ class FisherVector:
     def _compute_signature(self, data):
         ndata = len(data)
         self.fv = numpy.zeros(self.nclasses * (2 * self.dim + 1))
+        fv_first_values = (self.stat0 - ndata * self.pi) / numpy.sqrt(self.pi)
         for k in range(self.nclasses):
-            self.fv[k] = (self.stat0[k] - ndata * self.pi[k]) / numpy.sqrt(self.pi[k])
+            self.fv[k] = fv_first_values[k]
         
         offset = self.nclasses
         for k in range(self.nclasses):
