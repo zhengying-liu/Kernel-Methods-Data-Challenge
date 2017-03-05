@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy
+import os
 
 def reshape_images(X):
     n = X.shape[0]
@@ -8,24 +9,33 @@ def reshape_images(X):
     X = numpy.swapaxes(X, 2, 3)
     return X
 
-def load_data():
-    Xtrain = numpy.genfromtxt('data/Xtr.csv', delimiter=',')
-    Xtrain = Xtrain[:,:3072]
+def load_data(overwrite=False):
+    if not overwrite and os.path.isfile('data/Xtrain.npy'):
+        Xtrain = numpy.load('data/Xtrain.npy')
+    else:
+        Xtrain = numpy.genfromtxt('data/Xtr.csv', delimiter=',')
+        Xtrain = Xtrain[:,:3072]
+        Xtrain = reshape_images(Xtrain)
+        numpy.save('data/Xtrain', Xtrain)
 
-    aux = numpy.genfromtxt('data/Ytr.csv', delimiter=',', names=True)
-    Ytrain = numpy.zeros((5000,), dtype=numpy.int32)
-    for i, y in enumerate(aux):
-        Ytrain[i] = int(y[1])
+    if not overwrite and os.path.isfile('data/Ytrain.npy'):
+        Ytrain = numpy.load('data/Ytrain.npy')
+    else:
+        aux = numpy.genfromtxt('data/Ytr.csv', delimiter=',', names=True)
+        Ytrain = numpy.zeros((5000,), dtype=numpy.int32)
+        for i, y in enumerate(aux):
+            Ytrain[i] = int(y[1])
+        numpy.save('data/Ytrain', Ytrain)
 
     assert Xtrain.shape[0] == Ytrain.shape[0]
 
-    Xtest = numpy.genfromtxt('data/Xte.csv', delimiter=',')
-    Xtest = Xtest[:,:3072]
-
-    assert Xtest.shape[1] == Xtrain.shape[1]
-
-    Xtrain = reshape_images(Xtrain)
-    Xtest = reshape_images(Xtest)
+    if not overwrite and os.path.isfile('data/Xtest.npy'):
+        Xtest = numpy.load('data/Xtest.npy')
+    else:
+        Xtest = numpy.genfromtxt('data/Xte.csv', delimiter=',')
+        Xtest = Xtest[:,:3072]
+        Xtest = reshape_images(Xtest)
+        numpy.save('data/Xtest', Xtest)
 
     return Xtrain, Ytrain, Xtest
 
