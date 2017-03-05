@@ -50,14 +50,9 @@ class FisherVector:
         for t in range(ndata):
             gamma_K_N[:,t] = gamma(data[t], self.pi, self.mu, sigma_matrix)[1]
             
-        self.stat0 = numpy.zeros(self.nclasses)
-        self.stat1 = numpy.zeros((self.nclasses, self.dim))
-        self.stat2 = numpy.zeros((self.nclasses, self.dim))
-        for t in range(ndata):
-            for k in range(self.nclasses):
-                self.stat0[k] += gamma_K_N[k, t]
-                self.stat1[k] += gamma_K_N[k, t] * data[t]
-                self.stat2[k] += gamma_K_N[k, t] * data[t] * data[t]
+        self.stat0 = numpy.sum(gamma_K_N, axis=1)
+        self.stat1 = numpy.array(numpy.matrix(gamma_K_N) * numpy.matrix(data))
+        self.stat2 = numpy.array(numpy.matrix(gamma_K_N) * numpy.matrix([[i * j for i, j in zip(*row)] for row in zip(data, data)]))
     
     def _compute_signature(self, data):
         ndata = len(data)
@@ -81,7 +76,7 @@ class FisherVector:
     def _normalize(self):
         for i in range(len(self.fv)):
             self.fv[i] = numpy.sign(self.fv[i]) * numpy.sqrt(numpy.abs(self.fv[i]))
-        self.fv = self.fv / numpy.linalg.norm(self.fv, ord=2)
+        self.fv /= numpy.linalg.norm(self.fv, ord=2)
         
     def predict(self, data):
         self._gmm_fit(data)
