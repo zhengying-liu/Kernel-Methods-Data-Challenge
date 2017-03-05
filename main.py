@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy
+import os
 
 from cross_entropy_classifier import CrossEntropyClassifier
 from fisher_feature_extractor import FisherFeatureExtractor
@@ -10,21 +11,47 @@ from svm import KernelSVMOneVsOneClassifier, KernelSVMOneVsAllClassifier
 from utils import load_data, plot_history, write_output, concat_bias
 
 output_suffix = 'trial14'
-feature_extractor = 'hog_fisher'
+feature_extractor = 'hog'
 classifier = 'svm_ovo'
 validation = 0.2
+nclasses = 10
+overwrite = False
 
 print("Loading data")
 Xtrain, Ytrain, Xtest = load_data()
 
 if feature_extractor == 'hog':
     hog = HOGFeatureExtractor()
-    Xtrain = hog.predict(Xtrain)
-    Xtest = hog.predict(Xtest)
+
+    if not overwrite and os.path.isfile('data/Xtrain_hog.npy'):
+        Xtrain = numpy.load('data/Xtrain_hog.npy')
+    else:
+        Xtrain = hog.predict(Xtrain)
+        numpy.save('data/Xtrain_hog', Xtrain)
+
+    if not overwrite and os.path.isfile('data/Xtest_hog.npy'):
+        Xtest = numpy.load('data/Xtest_hog.npy')
+    else:
+        Xtest = hog.predict(Xtest)
+        numpy.save('data/Xtest_hog', Xtest)
 elif feature_extractor == 'hog_fisher':
     fisher = FisherFeatureExtractor(nclasses=5)
     Xtrain = fisher.predict(Xtrain)
     Xtest = fisher.predict(Xtest)
+elif feature_extractor == 'kernel_descriptors':
+    kdes = KernelDescriptorsExtractor()
+
+    if not overwrite and os.path.isfile('data/Xtrain_kdes.npy'):
+        Xtrain = numpy.load('data/Xtrain_kdes.npy')
+    else:
+        Xtrain = kdes.predict(Xtrain)
+        numpy.save('data/Xtrain_kdes.npy')
+
+    if not overwrite and os.path.isfile('data/Xtest_kdes.npy'):
+        Xtest = numpy.load('data/Xtest_kdes.npy')
+    else:
+        Xtest = kdes.predict(Xtest)
+        numpy.save('data/Xtest_kdes.npy')
 elif feature_extractor == 'raw':
     pass
 else:
@@ -51,7 +78,6 @@ if kernel_pca:
     Xtest = X[ntrain:, :]
 
 print("Fitting on training data")
-nclasses = 10
 if classifier == 'cross_entropy':
     Xtrain = concat_bias(Xtrain)
     Xtest = concat_bias(Xtest)
