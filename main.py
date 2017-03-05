@@ -73,8 +73,8 @@ elif classifier == 'svm_ovo':
     model = KernelSVMOneVsOneClassifier(nclasses)
     #kernel = GaussianKernel(0.6)
     #kernel = HistogramIntersectionKernel(0.25)
-    kernel = LaplacianRBFKernel(1)
-    #kernel = SublinearRBFKernel(4)
+    kernel = LaplacianRBFKernel(1.6)
+    #kernel = SublinearRBFKernel(0.4)
     #kernel = LinearKernel()
     reg_lambda = 0.5
     model.fit(Xtrain, Ytrain, kernel, reg_lambda, validation)
