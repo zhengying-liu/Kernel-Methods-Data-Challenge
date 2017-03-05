@@ -75,8 +75,7 @@ class FisherVector:
             offset += self.dim
         
     def _normalize(self):
-        for i in range(len(self.fv)):
-            self.fv[i] = numpy.sign(self.fv[i]) * numpy.sqrt(numpy.abs(self.fv[i]))
+        self.fv = numpy.sign(self.fv) * numpy.sqrt(numpy.abs(self.fv))
         self.fv /= numpy.linalg.norm(self.fv, ord=2)
         
     def predict(self, data):
