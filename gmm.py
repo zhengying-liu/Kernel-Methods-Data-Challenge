@@ -43,13 +43,9 @@ class Gmm:
         for n in range(N):
             gamma_K_N[:,n] = gamma(data[n], self.pi, self.mu, sigma_matrix)[1]
         
-        gamma_sum_K = numpy.empty(K)
-        for i in range(K):
-            gamma_sum_K[i] = sum(gamma_K_N[i])
+        gamma_sum_K = numpy.sum(gamma_K_N, axis=1)
         
-        pi_new = numpy.empty(K)
-        for i in range(K):
-            pi_new[i] = 1. / N * gamma_sum_K[i]
+        pi_new = 1. / N * gamma_sum_K
         
         mu_new = numpy.dot(numpy.matrix(gamma_K_N), numpy.matrix(data))
         for i in range(K):
