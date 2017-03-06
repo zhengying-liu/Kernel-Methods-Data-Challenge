@@ -5,6 +5,7 @@ random.seed(123)
 
 from quadratic_program_solver import QuadraticProgramSolver
 from cvxopt import matrix, solvers
+from sklearn.svm import LinearSVC
 
 solvers.options['show_progress'] = False
 
@@ -16,99 +17,151 @@ class KernelSVMBinaryClassifier:
     class1, class2: original labels of the classes
     """
     def __init__(self, kernel):
+        self.kernel = kernel
         self.X = None
         self.alpha = None
-        self.kernel = kernel
+        self.bias = None
         self.class1 = None
         self.class2 = None
 
-    def _svm_primal(self, y, K, reg_lambda):
+    def _dual_objective(self, i, j, ai, K, y, alpha):
+        aj = alpha[i] + alpha[j] - ai
+        ret = 2 * ai * y[i] + 2 * aj * y[j]
+        ret -= ai * K[i, i] * ai + aj * K[j, j] * aj + 2 * ai * K[i, j] * aj
+
         n = K.shape[0]
+        for k in range(n):
+            if k != i and k != j:
+                ret -= 2 * (ai * K[i, k] + aj * K[j, k]) * alpha[k]
 
-        Q = numpy.zeros((2 * n, 2 * n))
-        Q[:n, :n] = K
-        Q = matrix(Q, tc='d')
+        return ret
 
-        p = numpy.zeros(2 * n)
-        p[n:] = 1.0 / (2 * reg_lambda * n)
-        p = matrix(p, tc='d')
+    def _take_step(self, i, j, K, y, alpha, E, epsilon=1e-4):
+        s = alpha[i] + alpha[j]
+        L = max(-(1 - y[i]) * self.C / 2, s - (1 + y[j]) * self.C / 2)
+        H = min((1 + y[i]) * self.C / 2, s + (1 - y[j]) * self.C / 2)
 
-        A = numpy.zeros((2 * n, 2 * n))
-        A[:n, :n] = -(K * y).T
-        A[:n, n:] = -numpy.eye(n)
-        A[n:, n:] = -numpy.eye(n)
-        A = matrix(A, tc='d')
+        if L == H:
+            return False
 
-        b = numpy.zeros(2 * n)
-        b[:n] = -1
-        b = matrix(b, tc='d')
+        eta = 2 * K[i, j] - K[i, i] - K[j, j]
 
-        return Q, p, A, b
+        if abs(eta) > 0:
+            n = K.shape[0]
+            alpha_new = y[j] - y[i] + s * (K[i, j] - K[j, j])
+            for k in range(n):
+               if k != i and k != j:
+                   alpha_new += (K[i, k] - K[j, k]) * alpha[k]
+            alpha_new /= eta
 
-    # Quadractic programming
-    def _solve_primal(self, y, K, reg_lambda):
-        n = K.shape[0]
-        Q, p, A, b = self._svm_primal(y, K, reg_lambda)
+            if alpha_new < L:
+                alpha_new = L
+            elif alpha_new > H:
+                alpha_new = H
+        else:
+            Lobj = self._dual_objective(i, j, L, K, y, alpha)
+            Hobj = self._dual_objective(i, j, H, K, y, alpha)
 
-        w0 = numpy.zeros(2 * n)
-        w0[n:] = 2
-        #solver = QuadraticProgramSolver()
-        #w = solver.barrier_method(Q, p, A, b, w0, 2, 1e-5)
-        w = solvers.qp(Q, p, A, b)['x']
-        w = numpy.array(w)[:,0]
+            if Lobj < Hobj - epsilon:
+                alpha_new = H
+            elif Hobj < Lobj - epsilon:
+                alpha_new = L
+            else:
+                alpha_new = alpha[i]
 
-        alpha = w[:n]
-        return alpha
+        if abs(alpha_new - alpha[i]) < 1e-5 * (alpha_new + alpha[i] + 1e-5):
+            return False
+
+        alpha[i] = alpha_new
+        alpha[j] = s - alpha[i]
+
+        E[i] = numpy.dot(K[i, :], alpha) + self.bias - y[i]
+        E[j] = numpy.dot(K[j, :], alpha) + self.bias - y[j]
+        b1 = -E[i] + self.bias
+        b2 = -E[j] + self.bias
+
+        if alpha[i] * y[i] > epsilon and alpha[i] * y[i] < self.C - epsilon:
+           bias = b1
+        elif alpha[j] * y[j] > epsilon and alpha[j] * y[j] < self.C - epsilon:
+           bias = b2
+        else:
+           bias = (b1 + b2) / 2
+
+        E[i] += bias - self.bias
+        E[j] += bias - self.bias
+        self.bias = bias
+        return True
 
     # SMO algorithm
-    def _solve_dual(self, y, K, reg_lambda, iterations=100):
-        #print("Starting SMO to solve dual")
+    def _solve_dual(self, K, y, C, iterations=50, epsilon=1e-4):
         n = y.shape[0]
         alpha = numpy.zeros(n)
+        self.bias = 0
+        self.C = C
 
-        #result = 2 * numpy.dot(alpha, y) - numpy.dot(numpy.dot(alpha, K), alpha)
-        #print "Initial Result dual: %.5f" % result
+        E = numpy.zeros(n)
+        for i in range(n):
+            E[i] = -y[i]
+
+        loop_all = True
 
         for it in range(iterations):
-            alpha_prev = alpha.copy()
+            num_changed = 0
 
-            for i in range(0,n):
-                #i = random.randint(0,n - 1)
-                j = random.randint(0,n - 2)
-                if j >= i:
-                    j += 1
+            for i in range(n):
+                E[i] = numpy.dot(K[i, :], alpha) + self.bias - y[i]
+                if (loop_all \
+                    or (alpha[i] * y[i] > 0 and alpha[i] * y[i] < self.C)) \
+                    and ((E[i] * y[i] < -epsilon and alpha[i] * y[i] < self.C) \
+                    or (E[i] * y[i] > epsilon and alpha[i] * y[i] > 0)):
 
-                s = alpha[i] + alpha[j]
-                L = max(-(1 - y[i]) / (4 * reg_lambda * n), s - (1 + y[j]) / (4 * reg_lambda * n))
-                H = min((1 + y[i]) / (4 * reg_lambda * n), s + (1 - y[j]) / (4 * reg_lambda * n))
+                    non_bound = 0
+                    for j in range(n):
+                        if j != i and alpha[j] * y[j] > epsilon and alpha[j] * y[j] < self.C - epsilon:
+                            non_bound = 1
 
-                alpha_new = y[j] - y[i] + s * (K[i, j] - K[j, j])
-                for k in range(0,n):
-                    if k != i and k != j:
-                        alpha_new += (K[i, k] - K[j, k]) * alpha[k]
-                alpha_new /= 2 * K[i, j] - K[i, i] - K[j, j]
+                    done = False
+                    if non_bound > 0:
+                        k = -1
+                        for j in range(n):
+                            if j != i and alpha[j] * y[j] > epsilon and alpha[j] * y[j] < self.C - epsilon \
+                                and (j == -1 or (E[i] > 0 and E[j] < E[k]) \
+                                or (E[i] < 0 and E[j] > E[k])):
+                                k = j
+                        if self._take_step(i, k, K, y, alpha, E):
+                            done = True
 
-                if L <= alpha_new and alpha_new <= H:
-                    alpha[i] = alpha_new
-                elif alpha_new < L:
-                    alpha[i] = L
-                else:
-                    alpha[i] = H
-                alpha[j] = s - alpha[i]
+                    if not done:
+                        start = random.randint(0, n - 1)
+                        for j in range(start, n):
+                            if j != i and alpha[j] * y[j] > epsilon and alpha[j] * y[j] < self.C - epsilon:
+                                if self._take_step(i, j, K, y, alpha, E):
+                                    done = True
+                                    break
 
-            diff = numpy.linalg.norm(alpha - alpha_prev)
-            if diff < 1e-4:
-                break
+                    if not done:
+                        start = random.randint(0, n - 1)
+                        for j in range(start, n):
+                            if j != i:
+                                if self._take_step(i, j, K, y, alpha, E):
+                                    done = True
+                                    break
 
-            #result = 2 * numpy.dot(alpha, y) - numpy.dot(numpy.dot(alpha, K), alpha)
-            #print "Result dual: %.5f, diff = %.5f" % (result, diff)
+                    if done:
+                        num_changed += 1
 
+            if loop_all:
+                loop_all = False
+            elif num_changed > 0:
+                loop_all = True
+
+        #print self.bias
         #result = 2 * numpy.dot(alpha, y) - numpy.dot(numpy.dot(alpha, K), alpha)
-        #print "Final Result dual: %.5f" % result
+        #print "Final Result dual: %.8f" % result
 
         return alpha
 
-    def fit(self, X, y, reg_lambda, K=None):
+    def fit(self, X, y, C, K=None):
         #print("Fit KernelSVMBinaryClassifier")
         assert X.shape[0] == y.shape[0]
         assert X.ndim == 2 and y.ndim == 1
@@ -132,11 +185,7 @@ class KernelSVMBinaryClassifier:
         y2[ind1] = -1
         y2[ind2] = 1
 
-        reg_lambda = float(reg_lambda)
-        #alpha = self._solve_primal(y2, K, reg_lambda)
-        #print alpha
-        alpha = self._solve_dual(y2, K, reg_lambda)
-        #print alpha
+        alpha = self._solve_dual(K, y2, C)
         ind = (numpy.abs(alpha) > 1e-9)
         n_support_vectors = numpy.sum(ind)
         #print("support vectors: %d (of %d)" % (numpy.sum(ind), n))
@@ -149,15 +198,14 @@ class KernelSVMBinaryClassifier:
         n = X.shape[0]
         y = numpy.zeros(n, dtype=numpy.int32)
 
-        for i in range(n):
-            pred = 0
-            x = X[i,:]
-            for v, alpha in zip(self.X, self.alpha):
-                pred += alpha * self.kernel.calc(v, x)
+        K = self.kernel.build_K(X, self.X)
+        pred = numpy.dot(K, self.alpha)
+
+        for i, f in enumerate(pred):
             if confidence:
-                y[i] = pred
+                y[i] = f + self.bias
             else:
-                if pred >= 0:
+                if f + self.bias >= 0:
                     y[i] = self.class2
                 else:
                     y[i] = self.class1
@@ -184,7 +232,7 @@ class KernelSVMOneVsOneClassifier:
                 aux.append(KernelSVMBinaryClassifier(self.kernel))
             self.SVMMatrix.append(aux)
 
-    def fit(self, X, y, reg_lambda, validation=None, K=None):
+    def fit(self, X, y, C, validation=None, K=None):
         print("Fit KernelSVMOneVsOneClassifier")
         assert X.shape[0] == y.shape[0]
         assert X.ndim == 2 and y.ndim == 1
@@ -219,7 +267,7 @@ class KernelSVMOneVsOneClassifier:
                 ind = numpy.logical_or(ind_by_class[i], ind_by_class[j])
                 partial_K = K[ind, :]
                 partial_K = partial_K[:, ind]
-                self.SVMMatrix[i][j - i - 1].fit(Xtrain[ind, :], ytrain[ind], reg_lambda, K=partial_K)
+                self.SVMMatrix[i][j - i - 1].fit(Xtrain[ind, :], ytrain[ind], C, K=partial_K)
                 pbar.update(1)
         pbar.close()
 
@@ -262,7 +310,7 @@ class KernelSVMOneVsAllClassifier:
         for i in range(self.nclasses):
             self.SVMova.append(KernelSVMBinaryClassifier())
 
-    def fit(self, X, y, reg_lambda, validation=None):
+    def fit(self, X, y, C, validation=None):
         print("Fit KernelSVMOneVsAllClassifier")
         assert X.shape[0] == y.shape[0]
         assert X.ndim == 2 and y.ndim == 1
@@ -286,7 +334,7 @@ class KernelSVMOneVsAllClassifier:
             y2 = -numpy.ones(ytrain.shape[0])
             ind = (ytrain == i)
             y2[ind] = 1
-            self.SVMova[i].fit(Xtrain, y2, reg_lambda, K=K)
+            self.SVMova[i].fit(Xtrain, y2, C, K=K)
 
         if validation is not None:
             accuracy = self._calc_accuracy(Xval, yval)

@@ -105,12 +105,12 @@ elif classifier == 'svm_ovo':
     #kernel = SublinearRBFKernel(0.4)
     #kernel = LinearKernel()
     model = KernelSVMOneVsOneClassifier(nclasses, kernel)
-    reg_lambda = 0.5
+    C = 1
     K = kernel.build_K(Xtrain)
-    model.fit(Xtrain, Ytrain, reg_lambda, validation, K=K)
+    model.fit(Xtrain, Ytrain, C, validation, K=K)
 
     model = KernelSVMOneVsOneClassifier(nclasses, kernel)
-    model.fit(Xtrain, Ytrain, reg_lambda, K=K)
+    model.fit(Xtrain, Ytrain, C, K=K)
 elif classifier == 'svm_ova':
     kernel = GaussianKernel(1.5)
     reg_lambda = 0.5
