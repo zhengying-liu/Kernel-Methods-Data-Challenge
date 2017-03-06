@@ -45,6 +45,26 @@ def gaussian_blur(I, kernel_size, sigma):
                         new_I[x, y] += kernel[kernel_center + dx, kernel_center + dy] * I[x + dx, y + dy]
     return new_I
 
+def sample_point_linear(I, x, y):
+    left = min(max(numpy.floor(x), 0), I.shape[0] - 2)
+    top = min(max(numpy.floor(y), 0), I.shape[1] - 2)
+    wx = x - left
+    wy = y - top
+    return (I[left, top] * (1 - wx) + I[left + 1, top] * wx) * (1 - wy) + (I[left, top + 1] * (1 - wx) + I[left + 1, top + 1] * wx) * wy
+    
+def inv_transform_image_linear(I, sizeX, sizeY, scale, rotation, translateX, translateY):
+    result = numpy.empty((sizeX, sizeY))
+    for x in range(sizeX):
+        for y in range(sizeY):
+            cos = numpy.cos(rotation)
+            sin = numpy.sin(rotation)
+            x2 = x * scale
+            y2 = y * scale
+            x3 = x2 * cos - y2 * sin + translateX
+            y3 = y2 * cos + x2 * sin + translateY
+            result[x, y] = sample_point_linear(I, x3, y3)
+    return result
+
 if __name__ == '__main__':
     print(_create_gaussian_kernel(3, 1))
     print("Loading data")
