@@ -31,8 +31,7 @@ def gaussian_blur(I, kernel_size, sigma):
     new_I = numpy.zeros((nx, ny))
     for x in range(nx):
         for y in range(ny):
-            border = (x - kernel_center < 0) or (x + kernel_center >= nx) or (y - kernel_center > 0) or (y + kernel_center >= ny)
-            if border:
+            if (x - kernel_center < 0) or (x + kernel_center >= nx) or (y - kernel_center > 0) or (y + kernel_center >= ny):
                 kernel_sum = 0
                 for dx in range(-kernel_center, kernel_center + 1):
                     for dy in range(-kernel_center, kernel_center + 1):
