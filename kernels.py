@@ -15,6 +15,7 @@ class Kernel:
         for i in tqdm(range(n)):
             for j in range(m):
                 K[i, j] = self.calc(X[i, :], Y[j, :])
+        return K
 
 class LinearKernel(Kernel):
     def calc(self, x, y):
