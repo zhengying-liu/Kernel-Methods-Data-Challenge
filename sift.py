@@ -73,7 +73,14 @@ class SIFT:
                     self.gaussian_pyramid[dst] = gaussian_blur(self.gaussian_pyramid[src], sig[i])
     
     def _build_DoG_pyramid(self):
-        pass
+        self.dog_pyramid = numpy.empty(self.noctaves * (self.noctave_layers + 2))
+
+        for o in range(self.noctaves):
+            for i in range(self.noctave_layers + 2):
+                src1 = o * (self.noctave_layers + 3) + i
+                src2 = src1 + 1
+                dst = o * (self.noctave_layers + 2) + i
+                self.dog_pyramid[dst] = self.gaussian_pyramid[src2] - self.gaussian_pyramid[src1]
     
     def _calc_orientation_hist(self, I, x, y, radius, hist, n):
         pass
@@ -94,5 +101,5 @@ class SIFT:
         pass
     
     def calc_features_for_image(self, I):
-        self.noctaves = numpy.round(numpy.log2(min(I.shape[0], I.shape[1]))) - 1
+        self.noctaves = numpy.round(numpy.log2(min(I.shape[0], I.shape[1]))) - 2
     
