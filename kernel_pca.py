@@ -1,15 +1,13 @@
 import numpy
 
-from kernels import build_K
-
 class KernelPCA:
-    def __init__(self, K_function):
-        self.K_function = K_function
+    def __init__(self, kernel):
+        self.kernel = kernel
 
     def _center(self, X):
         n = X.shape[0]
         U = numpy.ones((n, n)) / n
-        K = build_K(X, self.K_function)
+        K = self.kernel.build_K(X)
         return (numpy.eye(n) - U) * K * (numpy.eye(n) - U)
 
     def fit(self, X):

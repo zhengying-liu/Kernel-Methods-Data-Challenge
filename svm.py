@@ -3,7 +3,6 @@ import numpy
 import random
 random.seed(123)
 
-from kernels import build_K
 from quadratic_program_solver import QuadraticProgramSolver
 from cvxopt import matrix, solvers
 
@@ -13,13 +12,13 @@ class KernelSVMBinaryClassifier:
     """
     X: support vectors
     alpha: corresponding coefficients for predictions
-    K_function: SVM's kernel
+    kernel: SVM's kernel
     class1, class2: original labels of the classes
     """
-    def __init__(self):
+    def __init__(self, kernel):
         self.X = None
         self.alpha = None
-        self.K_function = None
+        self.kernel = kernel
         self.class1 = None
         self.class2 = None
 
@@ -109,7 +108,7 @@ class KernelSVMBinaryClassifier:
 
         return alpha
 
-    def fit(self, X, y, K_function, reg_lambda, K=None):
+    def fit(self, X, y, reg_lambda, K=None):
         #print("Fit KernelSVMBinaryClassifier")
         assert X.shape[0] == y.shape[0]
         assert X.ndim == 2 and y.ndim == 1
@@ -117,7 +116,7 @@ class KernelSVMBinaryClassifier:
         n = X.shape[0]
 
         if K is None:
-            K = build_K(X, K_function)
+            K = self.kernel.build_K(X)
         else:
             assert K.ndim == 2 and K.shape[0] == n and K.shape[1] == n
 
@@ -144,7 +143,6 @@ class KernelSVMBinaryClassifier:
         assert n_support_vectors > 0
         self.X = X[ind, :]
         self.alpha = alpha[ind]
-        self.K_function = K_function
         print "Accuracy on training data: %.3f" % self._calc_accuracy(X, y)
 
     def predict(self, X, confidence=False):
@@ -155,7 +153,7 @@ class KernelSVMBinaryClassifier:
             pred = 0
             x = X[i,:]
             for v, alpha in zip(self.X, self.alpha):
-                pred += alpha * self.K_function.calc(v, x)
+                pred += alpha * self.kernel.calc(v, x)
             if confidence:
                 y[i] = pred
             else:
@@ -175,17 +173,18 @@ class KernelSVMOneVsOneClassifier:
     nclasses: number of classes (assumed between 0 and nclasses - 1)
     SVMMatrix: matrix of one vs one classifiers
     """
-    def __init__(self, nclasses):
+    def __init__(self, nclasses, kernel):
         self.nclasses = nclasses
+        self.kernel = kernel
         self.SVMMatrix = []
 
         for i in range(self.nclasses):
             aux = []
             for j in range(i + 1, self.nclasses):
-                aux.append(KernelSVMBinaryClassifier())
+                aux.append(KernelSVMBinaryClassifier(self.kernel))
             self.SVMMatrix.append(aux)
 
-    def fit(self, X, y, K_function, reg_lambda, validation=None):
+    def fit(self, X, y, reg_lambda, validation=None, K=None):
         print("Fit KernelSVMOneVsOneClassifier")
         assert X.shape[0] == y.shape[0]
         assert X.ndim == 2 and y.ndim == 1
@@ -199,6 +198,9 @@ class KernelSVMOneVsOneClassifier:
             yval = y[:split_idx]
             Xtrain = X[split_idx:,:]
             ytrain = y[split_idx:]
+
+            if K is not None:
+                K = K[split_idx:, split_idx:]
         else:
             Xtrain = X
             ytrain = y
@@ -208,7 +210,8 @@ class KernelSVMOneVsOneClassifier:
             ind = (ytrain == i)
             ind_by_class.append(ind)
 
-        K = build_K(Xtrain, K_function)
+        if K is None:
+            K = self.kernel.build_K(Xtrain)
 
         pbar = tqdm(total=self.nclasses * (self.nclasses - 1) / 2)
         for i in range(self.nclasses):
@@ -216,7 +219,7 @@ class KernelSVMOneVsOneClassifier:
                 ind = numpy.logical_or(ind_by_class[i], ind_by_class[j])
                 partial_K = K[ind, :]
                 partial_K = partial_K[:, ind]
-                self.SVMMatrix[i][j - i - 1].fit(Xtrain[ind, :], ytrain[ind], K_function, reg_lambda, K=partial_K)
+                self.SVMMatrix[i][j - i - 1].fit(Xtrain[ind, :], ytrain[ind], reg_lambda, K=partial_K)
                 pbar.update(1)
         pbar.close()
 
@@ -251,14 +254,15 @@ class KernelSVMOneVsAllClassifier:
     nclasses: number of classes (assumed between 0 and nclasses - 1)
     SVMova: list of one vs all classifiers
     """
-    def __init__(self, nclasses):
+    def __init__(self, nclasses, kernel):
         self.nclasses = nclasses
+        self.kernel = kernel
         self.SVMova = []
 
         for i in range(self.nclasses):
             self.SVMova.append(KernelSVMBinaryClassifier())
 
-    def fit(self, X, y, K_function, reg_lambda, validation=None):
+    def fit(self, X, y, reg_lambda, validation=None):
         print("Fit KernelSVMOneVsAllClassifier")
         assert X.shape[0] == y.shape[0]
         assert X.ndim == 2 and y.ndim == 1
@@ -276,13 +280,13 @@ class KernelSVMOneVsAllClassifier:
             Xtrain = X
             ytrain = y
 
-        K = build_K(Xtrain, K_function)
+        K = self.kernel.build_K(Xtrain)
 
         for i in tqdm(range(self.nclasses)):
             y2 = -numpy.ones(ytrain.shape[0])
             ind = (ytrain == i)
             y2[ind] = 1
-            self.SVMova[i].fit(Xtrain, y2, K_function, reg_lambda, K=K)
+            self.SVMova[i].fit(Xtrain, y2, reg_lambda, K=K)
 
         if validation is not None:
             accuracy = self._calc_accuracy(Xval, yval)
@@ -308,7 +312,8 @@ if __name__ == '__main__':
     X = numpy.array([[-2,0],[-1,0],[1,0]])
     y = numpy.array([-1,-1,1])
 
-    model = KernelSVMBinaryClassifier()
-    model.fit(X, y, GaussianKernel(0.5), 0.5)
+    kernel = GaussianKernel(0.5)
+    model = KernelSVMBinaryClassifier(kernel)
+    model.fit(X, y, 0.5)
     print model.X
     print model.alpha

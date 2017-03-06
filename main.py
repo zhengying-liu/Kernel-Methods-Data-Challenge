@@ -7,7 +7,8 @@ from fisher_feature_extractor import FisherFeatureExtractor
 from hog_feature_extractor import HOGFeatureExtractor
 from kernel_descriptors_extractor import KernelDescriptorsExtractor
 from kernel_pca import KernelPCA
-from kernels import LinearKernel, GaussianKernel, HistogramIntersectionKernel, LaplacianRBFKernel, SublinearRBFKernel
+from kernels import (LinearKernel, GaussianKernel, HistogramIntersectionKernel,
+                    LaplacianRBFKernel, SublinearRBFKernel)
 from svm import KernelSVMOneVsOneClassifier, KernelSVMOneVsAllClassifier
 from utils import load_data, plot_history, write_output, concat_bias
 
@@ -98,25 +99,26 @@ if classifier == 'cross_entropy':
     model = CrossEntropyClassifier(nclasses)
     history = model.fit(Xtrain, Ytrain, best, lr)
 elif classifier == 'svm_ovo':
-    model = KernelSVMOneVsOneClassifier(nclasses)
     #kernel = GaussianKernel(0.6)
     #kernel = HistogramIntersectionKernel(0.25)
     kernel = LaplacianRBFKernel(1.6)
     #kernel = SublinearRBFKernel(0.4)
     #kernel = LinearKernel()
+    model = KernelSVMOneVsOneClassifier(nclasses, kernel)
     reg_lambda = 0.5
-    model.fit(Xtrain, Ytrain, kernel, reg_lambda, validation)
+    K = kernel.build_K(Xtrain)
+    model.fit(Xtrain, Ytrain, reg_lambda, validation, K=K)
 
-    model = KernelSVMOneVsOneClassifier(nclasses)
-    model.fit(Xtrain, Ytrain, kernel, reg_lambda)
+    model = KernelSVMOneVsOneClassifier(nclasses, kernel)
+    model.fit(Xtrain, Ytrain, reg_lambda, K=K)
 elif classifier == 'svm_ova':
-    model = KernelSVMOneVsAllClassifier(nclasses)
     kernel = GaussianKernel(1.5)
     reg_lambda = 0.5
-    model.fit(Xtrain, Ytrain, kernel, reg_lambda, validation)
+    model = KernelSVMOneVsAllClassifier(nclasses, kernel)
+    model.fit(Xtrain, Ytrain, reg_lambda, validation)
 
-    model = KernelSVMOneVsAllClassifier(nclasses)
-    model.fit(Xtrain, Ytrain, kernel, reg_lambda)
+    model = KernelSVMOneVsAllClassifier(nclasses, kernel)
+    model.fit(Xtrain, Ytrain, reg_lambda)
 else:
     raise Exception("Unknown classifier")
 

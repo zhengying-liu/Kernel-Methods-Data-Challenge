@@ -1,8 +1,6 @@
 import numpy
 from scipy import linalg
 
-from kernels import build_K
-
 class FeatureVectorProjection:
     """
     kernel: kernel that we want to estimate
@@ -18,7 +16,7 @@ class FeatureVectorProjection:
 
     def fit(self, X):
         assert X.ndim == 2
-        Kzz = build_K(X, self.kernel)
+        Kzz = self.kernel.build_K(X)
         Kzz = linalg.inv(Kzz)
         G = linalg.cholesky(Kzz)
         assert numpy.isreal(G).all()

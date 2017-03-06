@@ -1,35 +1,40 @@
 from tqdm import tqdm
 import numpy
 
-def build_K(X, kernel):
-    print("Building kernel matrix")
+class Kernel:
+    def calc(self, x, y):
+        raise NotImplementedError("calc function has not been implemented")
 
-    if hasattr(kernel, "build_K") and callable(kernel.build_K):
-        return kernel.build_K(X, X)
-    else:
+    def build_K(self, X, Y=None):
+        if Y is None:
+            Y = X
         n = X.shape[0]
-        K = numpy.zeros((n, n))
+        m = Y.shape[0]
+        K = numpy.zeros((n, m))
+
         for i in tqdm(range(n)):
-            for j in range(n):
-                K[i, j] = kernel.calc(X[i, :], X[j, :])
+            for j in range(m):
+                K[i, j] = self.calc(X[i, :], Y[j, :])
 
-    return K
-
-class LinearKernel:
+class LinearKernel(Kernel):
     def calc(self, x, y):
         return numpy.dot(x, y)
 
-    def build_K(self, X, Y):
+    def build_K(self, X, Y=None):
+        if Y is None:
+            Y = X
         return numpy.dot(X, Y.T)
 
-class GaussianKernel:
+class GaussianKernel(Kernel):
     def __init__(self, sigma):
         self.sigma = sigma
 
     def calc(self, x, y):
         return numpy.exp(-numpy.linalg.norm(x - y) ** 2 / (2 * self.sigma ** 2))
 
-    def build_K(self, X, Y):
+    def build_K(self, X, Y=None):
+        if Y is None:
+            Y = X
         n = X.shape[0]
         m = Y.shape[0]
         K = numpy.zeros((n, m))
@@ -39,7 +44,7 @@ class GaussianKernel:
         K /= 2 * self.sigma ** 2
         return numpy.exp(-K)
 
-class GaussianKernelForAngle:
+class GaussianKernelForAngle(Kernel):
     def __init__(self, sigma):
         self.sigma = sigma
 
@@ -47,7 +52,9 @@ class GaussianKernelForAngle:
         aux = (numpy.sin(x) - numpy.sin(y)) ** 2 + (numpy.cos(x) - numpy.cos(y)) ** 2
         return numpy.exp(-aux / (2 * self.sigma ** 2))
 
-    def build_K(self, X, Y):
+    def build_K(self, X, Y=None):
+        if Y is None:
+            Y = X
         n = X.shape[0]
         m = Y.shape[0]
         X2 = numpy.concatenate((numpy.sin(X),numpy.cos(X)), axis=1)
@@ -59,21 +66,23 @@ class GaussianKernelForAngle:
         K /= 2 * self.sigma ** 2
         return numpy.exp(-K)
 
-class HistogramIntersectionKernel:
+class HistogramIntersectionKernel(Kernel):
     def __init__(self, beta):
         self.beta = beta
 
     def calc(self, x, y):
         return numpy.sum(numpy.minimum(x ** self.beta, y ** self.beta))
 
-class LaplacianRBFKernel:
+class LaplacianRBFKernel(Kernel):
     def __init__(self, sigma):
         self.sigma = sigma
 
     def calc(self, x, y):
         return numpy.exp(-numpy.sum(numpy.abs(x - y)) / self.sigma**2)
 
-    def build_K(self, X, Y):
+    def build_K(self, X, Y=None):
+        if Y is None:
+            Y = X
         n = X.shape[0]
         m = Y.shape[0]
         K = numpy.zeros((n, m))
@@ -83,13 +92,13 @@ class LaplacianRBFKernel:
         K /= self.sigma ** 2
         return numpy.exp(-K)
 
-class SublinearRBFKernel:
+class SublinearRBFKernel(Kernel):
     def __init__(self, sigma):
         self.sigma = sigma
 
     def calc(self, x, y):
         return numpy.exp(-numpy.sum(numpy.abs(x - y))**0.5 / self.sigma**2)
 
-class HellingerKernel:
+class HellingerKernel(Kernel):
     def calc(self, x, y):
         return numpy.sum(numpy.sqrt(x * y))
