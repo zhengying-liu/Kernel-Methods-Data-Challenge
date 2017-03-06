@@ -39,8 +39,18 @@ if feature_extractor == 'hog':
         numpy.save('data/Xtest_hog', Xtest)
 elif feature_extractor == 'hog_fisher':
     fisher = FisherFeatureExtractor(nclasses=5)
-    Xtrain = fisher.predict(Xtrain)
-    Xtest = fisher.predict(Xtest)
+    
+    if not overwrite and os.path.isfile('data/Xtrain_hog_fisher.npy'):
+        Xtrain = numpy.load('data/Xtrain_hog_fisher.npy')
+    else:
+        Xtrain = fisher.predict(Xtrain)
+        numpy.save('data/Xtrain_hog_fisher', Xtrain)
+
+    if not overwrite and os.path.isfile('data/Xtest_hog_fisher.npy'):
+        Xtest = numpy.load('data/Xtest_hog_fisher.npy')
+    else:
+        Xtest = fisher.predict(Xtest)
+        numpy.save('data/Xtest_hog_fisher', Xtest)
 elif feature_extractor == 'kernel_descriptors':
     kdes = KernelDescriptorsExtractor()
 
