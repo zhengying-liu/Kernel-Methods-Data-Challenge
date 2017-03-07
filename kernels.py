@@ -2,6 +2,9 @@ from tqdm import tqdm
 import numpy
 
 class Kernel:
+    def __init__():
+        self.name = None
+
     def calc(self, x, y):
         raise NotImplementedError("calc function has not been implemented")
 
@@ -18,6 +21,9 @@ class Kernel:
         return K
 
 class LinearKernel(Kernel):
+    def __init__(self):
+        self.name = 'linear'
+
     def calc(self, x, y):
         return numpy.dot(x, y)
 
@@ -29,6 +35,7 @@ class LinearKernel(Kernel):
 class GaussianKernel(Kernel):
     def __init__(self, sigma):
         self.sigma = sigma
+        self.name = 'gaussian_%.5f' % sigma
 
     def calc(self, x, y):
         return numpy.exp(-numpy.linalg.norm(x - y) ** 2 / (2 * self.sigma ** 2))
@@ -48,6 +55,7 @@ class GaussianKernel(Kernel):
 class GaussianKernelForAngle(Kernel):
     def __init__(self, sigma):
         self.sigma = sigma
+        self.name = 'gaussian_angle_%.5f' % sigma
 
     def calc(self, x, y):
         aux = (numpy.sin(x) - numpy.sin(y)) ** 2 + (numpy.cos(x) - numpy.cos(y)) ** 2
@@ -70,6 +78,7 @@ class GaussianKernelForAngle(Kernel):
 class HistogramIntersectionKernel(Kernel):
     def __init__(self, beta):
         self.beta = beta
+        self.name = 'histogram_intersection'
 
     def calc(self, x, y):
         return numpy.sum(numpy.minimum(x ** self.beta, y ** self.beta))
@@ -77,6 +86,7 @@ class HistogramIntersectionKernel(Kernel):
 class LaplacianRBFKernel(Kernel):
     def __init__(self, sigma):
         self.sigma = sigma
+        self.name = 'laplacian_%.5f' % sigma
 
     def calc(self, x, y):
         return numpy.exp(-numpy.sum(numpy.abs(x - y)) / self.sigma**2)
@@ -96,10 +106,14 @@ class LaplacianRBFKernel(Kernel):
 class SublinearRBFKernel(Kernel):
     def __init__(self, sigma):
         self.sigma = sigma
+        self.name = 'sublinear_%.5f' % sigma
 
     def calc(self, x, y):
         return numpy.exp(-numpy.sum(numpy.abs(x - y))**0.5 / self.sigma**2)
 
 class HellingerKernel(Kernel):
+    def __init__(self):
+        self.name = 'hellinger_%.5f' % sigma
+
     def calc(self, x, y):
         return numpy.sum(numpy.sqrt(x * y))
