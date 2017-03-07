@@ -13,10 +13,12 @@ class KernelPCA:
         return numpy.dot(numpy.dot(numpy.eye(n) - U, K), numpy.eye(n) - U)
 
     """
+    cut_percentage: percentage of variance that needs to be explained by the
+        components, if None, we keep all components
     plot: if True, then plot the percentage of variance that is explained by the
         top components
     """
-    def fit(self, X, plot=False):
+    def fit(self, X, cut_percentage=None, plot=False):
         print("Fit PCA")
         n = X.shape[0]
         self.K = self._center(X)
@@ -37,6 +39,23 @@ class KernelPCA:
         for i, v in enumerate(eig_values):
             self.alpha[:, i] /= numpy.sqrt(v)
 
+        if cut_percentage is not None:
+            assert cut_percentage > 0 and cut_percentage <= 100
+
+            n, m = self.alpha.shape
+            variance = numpy.trace(self.K) / n
+            projection = numpy.dot(self.K, self.alpha)
+            components = self.alpha.shape[1]
+
+            for i in range(m):
+                percentage_explained = numpy.linalg.norm(projection[:, :i + 1]) ** 2 / n / variance * 100.0
+                if percentage_explained >= cut_percentage:
+                    print i + 1, percentage_explained
+                    components = i + 1
+                    break
+
+            self.alpha = self.alpha[:, :components]
+
         if plot:
             n, m = self.alpha.shape
             variance = numpy.trace(self.K) / n
@@ -44,7 +63,7 @@ class KernelPCA:
 
             percentage_explained = numpy.zeros(m)
             for i in range(m):
-                percentage_explained[i] = numpy.linalg.norm(projection[:, :i]) ** 2 / n / variance * 100.0
+                percentage_explained[i] = numpy.linalg.norm(projection[:, :i + 1]) ** 2 / n / variance * 100.0
 
             plt.figure()
             plt.plot(percentage_explained)
@@ -73,7 +92,8 @@ if __name__ == '__main__':
 
     # decrease sigma to improve separation
     kpca = KernelPCA(GaussianKernel(0.686))
-    kpca.fit(X, plot=True)
+    kpca.fit(X, cut_percentage=95, plot=True)
+    print kpca.alpha.shape[1]
     Xproj = kpca.predict(2)
     axarr[1, 0].scatter(Xproj[y==0, 0], numpy.zeros(500), color='red')
     axarr[1, 0].scatter(Xproj[y==1, 0], numpy.zeros(500), color='blue')
