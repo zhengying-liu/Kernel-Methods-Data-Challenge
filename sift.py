@@ -37,12 +37,16 @@ class SIFT:
         self.descriptors = None
     
     def _create_initial_image(self, I, sigma):
+        greyI = numpy.empty((I.shape[0], I.shape[1]))
+        for x in range(I.shape[0]):
+            for y in range(I.shape[1]):
+                greyI[x, y] = I[x, y, 0] + I[x, y, 1] + I[x, y, 2]
+        
         # Double the size
-        result = inv_transform_image_linear(I, I.shape[0] * 2, I.shape[1] * 2, 0.5, 0, 0, 0)
+        result = inv_transform_image_linear(greyI, I.shape[0] * 2, I.shape[1] * 2, 0.5, 0, 0, 0)
         
         sig_diff = numpy.sqrt(max(sigma * sigma - SIFT_INIT_SIGMA * SIFT_INIT_SIGMA * 4, 0.01))
         self.base_image = gaussian_blur(result, sig_diff)
-        
     
     def _build_gaussian_pyramid(self):
         sig = numpy.empty(self.noctave_layers + 3)
