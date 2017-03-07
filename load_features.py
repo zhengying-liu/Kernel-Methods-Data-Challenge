@@ -6,12 +6,17 @@ from hog_feature_extractor import HOGFeatureExtractor
 from kernel_descriptors_extractor import KernelDescriptorsExtractor
 from kernel_pca import KernelPCA
 from utils import load_data
+from sift_feature_extractor import SIFTFeatureExtractor
 
 def get_feature_extractor(feature_extractor):
     if feature_extractor == 'hog':
         return HOGFeatureExtractor()
     elif feature_extractor == 'hog_fisher':
-        return FisherFeatureExtractor(nclasses=5)
+        return FisherFeatureExtractor(local_feature_extractor='hog', nclasses=5)
+    elif feature_extractor == 'sift':
+        return SIFTFeatureExtractor()
+    elif feature_extractor == 'sift_fisher':
+        return FisherFeatureExtractor(local_feature_extractor='sift', nclasses=5)
     elif feature_extractor == 'kernel_descriptors':
         return KernelDescriptorsExtractor()
     elif feature_extractor == 'raw':
