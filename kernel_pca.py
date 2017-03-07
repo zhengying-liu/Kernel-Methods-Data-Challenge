@@ -5,11 +5,15 @@ import numpy
 class KernelPCA:
     def __init__(self, kernel):
         self.kernel = kernel
+        self.X = None
+        self.alpha = None
+        self.center_vector = None
 
     def _center(self, X):
         n = X.shape[0]
         U = numpy.ones((n, n)) / n
         K = self.kernel.build_K(X)
+        self.center_vector = numpy.mean(K, axis=1) - numpy.mean(K)
         return numpy.dot(numpy.dot(numpy.eye(n) - U, K), numpy.eye(n) - U)
 
     """
@@ -19,11 +23,12 @@ class KernelPCA:
         top components
     """
     def fit(self, X, cut_percentage=None, plot=False):
-        print("Fit PCA")
+        print("Fit KPCA")
         n = X.shape[0]
-        self.K = self._center(X)
+        self.X = X
+        K = self._center(X)
         print("Calculating eigenvalue decomposition")
-        eig_values, eig_vectors = linalg.eigh(self.K)
+        eig_values, eig_vectors = linalg.eigh(K)
 
         # eigenvalues in dereasing order
         index = range(n)[::-1]
@@ -43,8 +48,8 @@ class KernelPCA:
             assert cut_percentage > 0 and cut_percentage <= 100
 
             n, m = self.alpha.shape
-            variance = numpy.trace(self.K) / n
-            projection = numpy.dot(self.K, self.alpha)
+            variance = numpy.trace(K) / n
+            projection = numpy.dot(K, self.alpha)
             components = self.alpha.shape[1]
 
             for i in range(m):
@@ -58,8 +63,8 @@ class KernelPCA:
 
         if plot:
             n, m = self.alpha.shape
-            variance = numpy.trace(self.K) / n
-            projection = numpy.dot(self.K, self.alpha)
+            variance = numpy.trace(K) / n
+            projection = numpy.dot(K, self.alpha)
 
             percentage_explained = numpy.zeros(m)
             for i in range(m):
@@ -68,11 +73,14 @@ class KernelPCA:
             plt.figure()
             plt.plot(percentage_explained)
 
-    def predict(self, components):
-        assert components > 0 and components < self.alpha.shape[1]
-        print("Predict PCA")
-        n = self.K.shape[0]
-        return numpy.dot(self.K, self.alpha[:, :components])
+    def predict(self, X, components=None):
+        assert components is None or (components > 0 and components <= self.alpha.shape[1])
+        if components is None:
+            components = self.alpha.shape[1]
+
+        K = self.kernel.build_K(X, self.X)
+        K = K - numpy.mean(K, axis=1)[:, numpy.newaxis] - self.center_vector
+        return numpy.dot(K, self.alpha[:, :components])
 
 if __name__ == '__main__':
     from sklearn.datasets import make_circles

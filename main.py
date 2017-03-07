@@ -10,7 +10,9 @@ from utils import plot_history, write_output, concat_bias
 output_suffix = 'trial14'
 
 feature_extractor = 'hog'
-overwrite = False
+overwrite_features = False
+
+overwrite_kpca = False
 kernel_pca = True
 kernel_pca_kernel = GaussianKernel(0.6)
 cut_percentage = 90
@@ -25,7 +27,7 @@ svm_kernel = LinearKernel()
 #svm_kernel = LaplacianRBFKernel(1.6)
 C = 1
 
-Xtrain, Ytrain, Xtest = load_features(feature_extractor, overwrite,
+Xtrain, Ytrain, Xtest = load_features(feature_extractor, overwrite_features, overwrite_kpca,
                                         kernel_pca, kernel_pca_kernel, cut_percentage)
 #Xtrain = numpy.reshape(Xtrain, (Xtrain.shape[0], -1))
 #Xtest = numpy.reshape(Xtest, (Xtest.shape[0], -1))
