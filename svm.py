@@ -161,7 +161,7 @@ class KernelSVMBinaryClassifier:
 
         return alpha
 
-    def fit(self, X, y, C, K=None):
+    def fit(self, X, y, C, K=None, check=False):
         #print("Fit KernelSVMBinaryClassifier")
         assert X.shape[0] == y.shape[0]
         assert X.ndim == 2 and y.ndim == 1
@@ -179,20 +179,27 @@ class KernelSVMBinaryClassifier:
         assert self.class1 != self.class2
         ind1 = (y == self.class1)
         ind2 = (y == self.class2)
-        #print "points of class %d : %d" % (self.class1, numpy.sum(ind1))
-        #print "points of class %d : %d" % (self.class2, numpy.sum(ind2))
         y2 = numpy.zeros(n)
         y2[ind1] = -1
         y2[ind2] = 1
 
+        if check:
+            print "points of class %d : %d" % (self.class1, numpy.sum(ind1))
+            print "points of class %d : %d" % (self.class2, numpy.sum(ind2))
+
         alpha = self._solve_dual(K, y2, C)
         ind = (numpy.abs(alpha) > 1e-9)
         n_support_vectors = numpy.sum(ind)
-        #print("support vectors: %d (of %d)" % (numpy.sum(ind), n))
+
+        if check:
+            print("support vectors: %d (of %d)" % (numpy.sum(ind), n))
+
         assert n_support_vectors > 0
         self.X = X[ind, :]
         self.alpha = alpha[ind]
-        print "Accuracy on training data: %.3f" % self._calc_accuracy(X, y)
+
+        if check:
+            print "Accuracy on training data: %.3f" % self._calc_accuracy(X, y)
 
     def predict(self, X, confidence=False):
         n = X.shape[0]
@@ -232,7 +239,7 @@ class KernelSVMOneVsOneClassifier:
                 aux.append(KernelSVMBinaryClassifier(self.kernel))
             self.SVMMatrix.append(aux)
 
-    def fit(self, X, y, C, validation=None, K=None):
+    def fit(self, X, y, C, validation=None, K=None, check=False):
         print("Fit KernelSVMOneVsOneClassifier")
         assert X.shape[0] == y.shape[0]
         assert X.ndim == 2 and y.ndim == 1
@@ -267,7 +274,7 @@ class KernelSVMOneVsOneClassifier:
                 ind = numpy.logical_or(ind_by_class[i], ind_by_class[j])
                 partial_K = K[ind, :]
                 partial_K = partial_K[:, ind]
-                self.SVMMatrix[i][j - i - 1].fit(Xtrain[ind, :], ytrain[ind], C, K=partial_K)
+                self.SVMMatrix[i][j - i - 1].fit(Xtrain[ind, :], ytrain[ind], C, K=partial_K, check=check)
                 pbar.update(1)
         pbar.close()
 
@@ -308,9 +315,9 @@ class KernelSVMOneVsAllClassifier:
         self.SVMova = []
 
         for i in range(self.nclasses):
-            self.SVMova.append(KernelSVMBinaryClassifier())
+            self.SVMova.append(KernelSVMBinaryClassifier(self.kernel))
 
-    def fit(self, X, y, C, validation=None):
+    def fit(self, X, y, C, validation=None, K=None, check=False):
         print("Fit KernelSVMOneVsAllClassifier")
         assert X.shape[0] == y.shape[0]
         assert X.ndim == 2 and y.ndim == 1
@@ -324,17 +331,21 @@ class KernelSVMOneVsAllClassifier:
             yval = y[:split_idx]
             Xtrain = X[split_idx:,:]
             ytrain = y[split_idx:]
+
+            if K is not None:
+                K = K[split_idx:, split_idx:]
         else:
             Xtrain = X
             ytrain = y
 
-        K = self.kernel.build_K(Xtrain)
+        if K is None:
+            K = self.kernel.build_K(Xtrain)
 
         for i in tqdm(range(self.nclasses)):
             y2 = -numpy.ones(ytrain.shape[0])
             ind = (ytrain == i)
             y2[ind] = 1
-            self.SVMova[i].fit(Xtrain, y2, C, K=K)
+            self.SVMova[i].fit(Xtrain, y2, C, K=K, check=check)
 
         if validation is not None:
             accuracy = self._calc_accuracy(Xval, yval)

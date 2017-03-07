@@ -39,7 +39,7 @@ if feature_extractor == 'hog':
         numpy.save('data/Xtest_hog', Xtest)
 elif feature_extractor == 'hog_fisher':
     fisher = FisherFeatureExtractor(nclasses=5)
-    
+
     if not overwrite and os.path.isfile('data/Xtrain_hog_fisher.npy'):
         Xtrain = numpy.load('data/Xtrain_hog_fisher.npy')
     else:
@@ -117,18 +117,19 @@ elif classifier == 'svm_ovo':
     model = KernelSVMOneVsOneClassifier(nclasses, kernel)
     C = 1
     K = kernel.build_K(Xtrain)
-    model.fit(Xtrain, Ytrain, C, validation, K=K)
+    model.fit(Xtrain, Ytrain, C, validation, K=K, check=True)
 
     model = KernelSVMOneVsOneClassifier(nclasses, kernel)
     model.fit(Xtrain, Ytrain, C, K=K)
 elif classifier == 'svm_ova':
     kernel = GaussianKernel(1.5)
-    reg_lambda = 0.5
+    C = 1
+    K = kernel.build_K(Xtrain)
     model = KernelSVMOneVsAllClassifier(nclasses, kernel)
-    model.fit(Xtrain, Ytrain, reg_lambda, validation)
+    model.fit(Xtrain, Ytrain, C, validation, K=K, check=True)
 
     model = KernelSVMOneVsAllClassifier(nclasses, kernel)
-    model.fit(Xtrain, Ytrain, reg_lambda)
+    model.fit(Xtrain, Ytrain, C, K=K)
 else:
     raise Exception("Unknown classifier")
 
