@@ -1,5 +1,6 @@
 from tqdm import tqdm
 import numpy
+
 from sift import SIFT
 
 class SIFTFeatureExtractor:
