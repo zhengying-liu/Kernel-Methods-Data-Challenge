@@ -89,7 +89,7 @@ class SIFT:
     def _calc_orientation_hist(self, I, x, y, radius, hist, n):
         pass
     
-    def _adjust_local_extrema(self, keypoint):
+    def _adjust_local_extrema(self, octave, layer, x, y):
         pass
     
     def _find_scale_space_extrema(self):
@@ -102,5 +102,5 @@ class SIFT:
         pass
     
     def calc_features_for_image(self, I):
-        self.noctaves = numpy.round(numpy.log2(min(I.shape[0], I.shape[1]))) - 2
+        self.noctaves = int(numpy.round(numpy.log2(min(I.shape[0], I.shape[1])))) - 2
     

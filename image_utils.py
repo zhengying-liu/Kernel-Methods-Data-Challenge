@@ -7,7 +7,7 @@ from utils import load_data
 kernel_size: The size of the Gaussian kernel, must be an odd integer
 sigma: The sigma of the Gaussian applied to the input image
 """
-def _create_gaussian_kernel(kernel_size, sigma):
+def _create_gaussian_kernel(sigma, kernel_size):
     kernel = numpy.zeros((kernel_size, kernel_size))
     for i in range(kernel_size):
         for j in range(kernel_size):
@@ -23,10 +23,13 @@ def _create_gaussian_kernel(kernel_size, sigma):
 """
 I: The image, represented by a 2d array
 """
-def gaussian_blur(I, kernel_size, sigma):
+def gaussian_blur(I, sigma, kernel_size=None):
+    if kernel_size is None:
+        kernel_size = int(numpy.floor(sigma * 3)) * 2 + 1
+    
     nx = I.shape[0]
     ny = I.shape[1]
-    kernel = _create_gaussian_kernel(kernel_size, sigma)
+    kernel = _create_gaussian_kernel(sigma, kernel_size)
     kernel_center = (kernel_size - 1) / 2
     new_I = numpy.zeros((nx, ny))
     for x in range(nx):
@@ -46,8 +49,8 @@ def gaussian_blur(I, kernel_size, sigma):
     return new_I
 
 def sample_point_linear(I, x, y):
-    left = min(max(numpy.floor(x), 0), I.shape[0] - 2)
-    top = min(max(numpy.floor(y), 0), I.shape[1] - 2)
+    left = min(max(int(numpy.floor(x)), 0), I.shape[0] - 2)
+    top = min(max(int(numpy.floor(y)), 0), I.shape[1] - 2)
     wx = x - left
     wy = y - top
     return (I[left, top] * (1 - wx) + I[left + 1, top] * wx) * (1 - wy) + (I[left, top + 1] * (1 - wx) + I[left + 1, top + 1] * wx) * wy
@@ -74,4 +77,3 @@ if __name__ == '__main__':
     blur1 = gaussian_blur(Xtrain[0, :, :, 0], kernel_size=5, sigma=1.6)
     plt.imshow(blur1, cmap='gray', interpolation='none')
     plt.show()
-        
