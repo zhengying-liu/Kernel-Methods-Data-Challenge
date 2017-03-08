@@ -1,6 +1,6 @@
 """
 Class for extracting keypoints and computing descriptors using the Scale Invariant Feature Transform (SIFT) algorithm by D. Lowe.
-Lowe, D. G., “Distinctive Image Features from Scale-Invariant Keypoints”, International Journal of Computer Vision, 60, 2, pp. 91-110, 2004.
+Lowe, D. G., Distinctive Image Features from Scale-Invariant Keypoints, International Journal of Computer Vision, 60, 2, pp. 91-110, 2004.
 https://www.cs.ubc.ca/~lowe/papers/ijcv04.pdf
 
 The implementation is adapted from OpenCV.
@@ -10,10 +10,44 @@ https://github.com/opencv/opencv/blob/2.4/modules/nonfree/src/sift.cpp
 
 import numpy
 
+from keypoint import Keypoint
 from image_utils import gaussian_blur, inv_transform_image_linear
 
 # assumed gaussian blur for input image
 SIFT_INIT_SIGMA = 0.5
+
+# default number of bins per histogram in descriptor array
+SIFT_ORI_HIST_BINS = 8
+
+# width of border in which to ignore keypoints
+SIFT_IMG_BORDER = 5
+
+# maximum steps of keypoint interpolation before failure
+SIFT_MAX_INTERP_STEPS = 5
+
+# default number of bins in histogram for orientation assignment
+SIFT_ORI_HIST_BINS = 36
+
+# determines gaussian sigma for orientation assignment
+SIFT_ORI_SIG_FCTR = 1.5
+
+# determines the radius of the region used in orientation assignment
+SIFT_ORI_RADIUS = 3 * SIFT_ORI_SIG_FCTR
+
+# orientation magnitude relative to max that results in new feature
+SIFT_ORI_PEAK_RATIO = 0.8
+
+# default width of descriptor histogram array
+SIFT_DESCR_WIDTH = 4
+
+# default number of bins per histogram in descriptor array
+SIFT_DESCR_HIST_BINS = 8
+
+# determines the size of a single descriptor orientation histogram
+SIFT_DESCR_SCL_FCTR = 3.
+
+# threshold on magnitude of elements of descriptor vector
+SIFT_DESCR_MAG_THR = 0.2
 
 class SIFT:
     """
@@ -86,20 +120,294 @@ class SIFT:
                 dst = o * (self.noctave_layers + 2) + i
                 self.dog_pyramid[dst] = self.gaussian_pyramid[src2] - self.gaussian_pyramid[src1]
     
-    def _calc_orientation_hist(self, I, x, y, radius, hist, n):
-        pass
+    # Computes a gradient orientation histogram at a specified pixel
+    def _calc_orientation_hist(self, I, px, py, radius, weight_sigma, nbins):
+        expf_scale = -1. / (2. * weight_sigma * weight_sigma)
+        width = I.shape[0]
+        height = I.shape[1]
+        temphist = numpy.zeros(nbins)
+        
+        for i in range(-radius, radius + 1):
+            x = px + i
+            if x <= 0 or x >= width - 1:
+                continue
+            for j in range(-radius, radius + 1):
+                y = py + j
+                if y <= 0 or y >= height - 1:
+                    continue
+                
+                dx = I[x + 1, y] - I[x - 1, y]
+                dy = I[x, y + 1] - I[x, y - 1]
+                
+                # compute gradient values, orientations and the weights over the pixel neighborhood
+                weight = numpy.exp((i * i + j * j) * expf_scale)
+                angle = numpy.arctan2(dy, dx)
+                mag = numpy.sqrt(dx * dx + dy * dy)
+                
+                binnum = int(numpy.round((nbins / 2 * numpy.pi) * angle))
+                if binnum >= nbins:
+                    binnum -= nbins
+                if binnum < 0:
+                    binnum += nbins
+                temphist[binnum] += weight * mag
+         
+        # smooth the histogram
+        hist = numpy.zeros(nbins)
+        for i in range(nbins):
+            hist[i] = (temphist[(i - 2 + nbins) % nbins] + temphist[(i + 2) % nbins]) * (1. / 16.) + \
+                (temphist[(i - 1 + nbins) % nbins] + temphist[(i + 1) % nbins]) * (1. / 4.) + \
+                temphist[i] * (6. / 16.)
+        
+        return hist
     
-    def _adjust_local_extrema(self, octave, layer, x, y):
-        pass
+    # Interpolates a scale-space extremum's location and scale to subpixel
+    # accuracy to form an image feature. Rejects features with low contrast.
+    # Based on Section 4 of Lowe's paper.
+    def _adjust_local_extrema(self, octv, layer, x, y):
+        di = 0
+        dx = 0
+        dy = 0
+        finished = False
+    
+        for _ in range(SIFT_MAX_INTERP_STEPS):
+            idx = octv * (self.noctave_layers + 2) + layer
+            img = self.dog_pyramid[idx]
+            prv = self.dog_pyramid[idx - 1]
+            nxt = self.dog_pyramid[idx + 1]
+    
+            dD = numpy.array([(img[x+1, y] - img[x-1, y]) * 0.5, (img[x, y+1] - img[x, y-1]) * 0.5, (nxt[x, y] - prv[x, y]) * 0.5])
+    
+            v2 = img[x, y] * 2;
+            dxx = img[x+1, y] + img[x-1, y] - v2
+            dyy = img[x, y+1] + img[x, y-1] - v2
+            dss = nxt[x, y] + prv[x, y] - v2
+            dxy = (img[x+1, y+1] - img[x+1, y-1] - img[x-1, y+1] + img[x-1, y-1]) * 0.25
+            dxs = (nxt[x+1, y] - nxt[x-1, y] - prv[x+1, y] + prv[x-1, y]) * 0.25
+            dys = (nxt[x, y+1] - nxt[x, y-1] - prv[x, y+1] + prv[x, y-1]) * 0.25
+    
+            H = numpy.array([[dxx, dxy, dxs], [dxy, dyy, dys], [dxs, dys, dss]])
+            X = numpy.linalg.solve(H, dD)
+            dx = -X[0]
+            dy = -X[1]
+            di = -X[2]
+     
+            if abs(dx) < 0.5 and abs(dy) < 0.5 and abs(di) < 0.5:
+                finished = True
+                break
+     
+            x += int(numpy.round(dx))
+            y += int(numpy.round(dy))
+            layer += int(numpy.round(di))
+     
+            if (layer < 1 or layer > self.noctave_layers or
+                x < SIFT_IMG_BORDER or x >= img.shape[0] - SIFT_IMG_BORDER or
+                y < SIFT_IMG_BORDER or y >= img.shape[1] - SIFT_IMG_BORDER):
+                return None, 0, 0, 0
+     
+        # ensure convergence of interpolation
+        if not finished:
+            return None, 0, 0, 0
+     
+        idx = octv * (self.noctave_layers + 2) + layer
+        img = self.dog_pyramid[idx]
+        prv = self.dog_pyramid[idx - 1]
+        nxt = self.dog_pyramid[idx + 1]
+        dD = numpy.array([(img[x+1, y] - img[x-1, y]) * 0.5, (img[x, y+1] - img[x, y-1]) * 0.5, (nxt[x, y] - prv[x, y]) * 0.5])
+        t = numpy.dot(dD, numpy.array([dx, dy, di]))
+ 
+        contr = img[x, y] + t * 0.5
+        if abs(contr) * self.noctave_layers < self.contrast_threshold:
+            return None, 0, 0, 0
+ 
+        # principal curvatures are computed using the trace and det of Hessian
+        v2 = img[x, y] * 2;
+        dxx = img[x+1, y] + img[x-1, y] - v2
+        dyy = img[x, y+1] + img[x, y-1] - v2
+        dxy = (img[x+1, y+1] - img[x+1, y-1] - img[x-1, y+1] + img[x-1, y-1]) * 0.25
+        tr = dxx + dyy
+        det = dxx * dyy - dxy * dxy
+ 
+        if det <= 0 or tr * tr * self.edge_threshold >= ((self.edge_threshold + 1) ** 2) * det:
+            return None, 0, 0, 0
+     
+        kpt = Keypoint()
+        kpt.x = (x + dx) * (1 << octv)
+        kpt.y = (y + dy) * (1 << octv)
+        kpt.octave = octv
+        kpt.layer = layer + di
+        kpt.sigma = self.sigma * numpy.power(2.0, (layer + di) / self.noctave_layers) * (1 << octv)
+        kpt.response = abs(contr)
+        return kpt, layer, x, y
     
     def _find_scale_space_extrema(self):
-        pass
+        threshold = numpy.floor(0.5 * self.contrast_threshold / self.noctave_layers)
     
-    def _calc_SIFT_descriptor(self):
-        pass
+        self.keypoints = []
     
-    def _calc_descriptors(self):
-        pass
+        for o in range(self.noctaves):
+            for i in range(1, self.noctave_layers + 1):
+                idx = o * (self.noctave_layers + 2) + i
+                img = self.dog_pyramid[idx]
+                prv = self.dog_pyramid[idx - 1]
+                nxt = self.dog_pyramid[idx + 1]
+                width = img.shape[0]
+                height = img.shape[1]
+    
+                for x in range(SIFT_IMG_BORDER, width - SIFT_IMG_BORDER):
+                    for y in range(SIFT_IMG_BORDER, height - SIFT_IMG_BORDER):
+                        val = img[x, y]
+    
+                        # find local extrema with pixel accuracy
+                        if abs(val) > threshold and ((
+                            val > 0 and val >= img[x, y-1] and val >= img[x, y+1] and
+                            val >= img[x-1, y-1] and val >= img[x-1, y] and val >= img[x-1, y+1] and
+                            val >= img[x+1, y-1] and val >= img[x+1, y] and val >= img[x+1, y+1] and
+                            val >= nxt[x-1, y-1] and val >= nxt[x-1, y] and val >= nxt[x-1, y+1] and
+                            val >= nxt[x, y-1] and val >= nxt[x, y] and val >= nxt[x, y+1] and
+                            val >= nxt[x+1, y-1] and val >= nxt[x+1, y] and val >= nxt[x+1, y+1] and
+                            val >= prv[x-1, y-1] and val >= prv[x-1, y] and val >= prv[x-1, y+1] and
+                            val >= prv[x, y-1] and val >= prv[x, y] and val >= prv[x, y+1] and
+                            val >= prv[x+1, y-1] and val >= prv[x+1, y] and val >= prv[x+1, y+1]) or (
+                            val < 0 and val <= img[x, y-1] and val <= img[x, y+1] and
+                            val <= img[x-1, y-1] and val <= img[x-1, y] and val <= img[x-1, y+1] and
+                            val <= img[x+1, y-1] and val <= img[x+1, y] and val <= img[x+1, y+1] and
+                            val <= nxt[x-1, y-1] and val <= nxt[x-1, y] and val <= nxt[x-1, y+1] and
+                            val <= nxt[x, y-1] and val <= nxt[x, y] and val <= nxt[x, y+1] and
+                            val <= nxt[x+1, y-1] and val <= nxt[x+1, y] and val <= nxt[x+1, y+1] and
+                            val <= prv[x-1, y-1] and val <= prv[x-1, y] and val <= prv[x-1, y+1] and
+                            val <= prv[x, y-1] and val <= prv[x, y] and val <= prv[x, y+1] and
+                            val <= prv[x+1, y-1] and val <= prv[x+1, y] and val <= prv[x+1, y+1])):
+                            
+                            kpt, i2, x2, y2 = self._adjust_local_extrema(o, i, x, y)
+                            if kpt is None:
+                                continue
+                            scl_octv = kpt.sigma / (1 << o)
+                            n = SIFT_ORI_HIST_BINS
+                            hist = self._calc_orientation_hist(self.gauss_pyramid[o * (self.noctave_layers + 3) + i2],
+                                                               x2,
+                                                               y2,
+                                                               int(numpy.round(SIFT_ORI_RADIUS * scl_octv)),
+                                                               SIFT_ORI_SIG_FCTR * scl_octv, n)
+                            
+                            mag_threshold = numpy.max(hist) * SIFT_ORI_PEAK_RATIO
+                            for j in range(n):
+                                left = j - 1 if j > 0 else n - 1
+                                right = j + 1 if j < n - 1 else 0
+     
+                                if hist[j] > hist[left] and hist[j] > hist[right] and hist[j] >= mag_threshold:
+                                    binnum = j + 0.5 * (hist[left] - hist[right]) / (hist[left] - 2 * hist[j] + hist[right])
+                                    binnum = binnum + n if binnum < 0 else binnum
+                                    binnum = binnum - n if binnum >= n else binnum
+                                    kpt.angle = (2 * numpy.pi / n) * binnum
+                                    self.keypoints.append(kpt.clone())
+    
+    def _calc_SIFT_descriptor(self, I, xf, yf, angle, sigma):
+        d = SIFT_DESCR_WIDTH
+        n = SIFT_DESCR_HIST_BINS
+        x = numpy.round(xf)
+        y = numpy.round(yf)
+        cos_t = numpy.cos(angle)
+        sin_t = numpy.sin(angle)
+        bins_per_rad = n / (2 * numpy.pi)
+        exp_scale = -1./(d * d * 0.5)
+        hist_width = SIFT_DESCR_SCL_FCTR * sigma
+        radius = numpy.round(hist_width * 1.4142135623730951 * (d + 1) * 0.5)
+        cos_t /= hist_width
+        sin_t /= hist_width
+        
+        width = I.shape[0]
+        height = I.shape[1]
+         
+        hist = numpy.zeros((d, d, n))
+    
+        for i in range(-radius, radius + 1):
+            for j in range(-radius, radius + 1):
+                # Calculate sample's histogram array coords rotated relative to ori.
+                # Subtract 0.5 so samples that fall e.g. in the center of row 1 (i.e.
+                # r_rot = 1.5) have full weight placed in row 1 after interpolation.
+                x_rot = i * cos_t + j * sin_t
+                y_rot = j * cos_t - i * sin_t
+                xbin = x_rot + d / 2 - 0.5
+                ybin = y_rot + d / 2 - 0.5
+                xt = x + i
+                yt = y + j
+    
+                if xbin >= 0 and xbin < d and ybin >= 0 and ybin < d and xt > 0 and xt < width - 1 and yt > 0 and yt < height - 1:
+                    dx = I[x+1, y] - I[x-1, y]
+                    dy = I[x, y+1] - I[x, y-1]
+                    grad_angle = numpy.arctan2(dy, dx)
+                    grad_mag = numpy.sqrt(dx * dx + dy * dy) * numpy.exp((x_rot * x_rot + y_rot * y_rot) * exp_scale)
+                    obin = (grad_angle - angle) * bins_per_rad
+                    x0 = numpy.floor(xbin)
+                    y0 = numpy.floor(ybin)
+                    o0 = numpy.floor(obin)
+                    xbin -= x0
+                    ybin -= y0
+                    obin -= o0
+                    if o0 < 0:
+                        o0 += n
+                    if o0 >= n:
+                        o0 -= n
+                    
+                    # histogram update using tri-linear interpolation
+                    v_x1 = grad_mag * xbin
+                    v_x0 = grad_mag - v_x1
+                    v_xy11 = v_x1 * ybin
+                    v_xy10 = v_x1 - v_xy11
+                    v_xy01 = v_x0 * ybin
+                    v_xy00 = v_x0 - v_xy01
+                    v_xyo111 = v_xy11 * obin
+                    v_xyo110 = v_xy11 - v_xyo111
+                    v_xyo101 = v_xy10 * obin
+                    v_xyo100 = v_xy10 - v_xyo101
+                    v_xyo011 = v_xy01 * obin
+                    v_xyo010 = v_xy01 - v_xyo011
+                    v_xyo001 = v_xy00 * obin
+                    v_xyo000 = v_xy00 - v_xyo001
+                    
+                    hist[x0, y0, o0] += v_xyo000
+                    hist[x0, y0, (o0 + 1) % n] += v_xyo001
+                    hist[x0, y0 + 1, o0] += v_xyo010
+                    hist[x0, y0 + 1, (o0 + 1) % n] += v_xyo011
+                    hist[x0 + 1, y0, o0] += v_xyo100
+                    hist[x0 + 1, y0, (o0 + 1) % n] += v_xyo101
+                    hist[x0 + 1, y0 + 1, o0] += v_xyo110
+                    hist[x0 + 1, y0 + 1, (o0 + 1) % n] += v_xyo111
+
+        # copy histogram to the descriptor,
+        # apply hysteresis thresholding
+        # and scale the result, so that it can be easily converted
+        # to byte array
+        hist = hist.flatten()
+        
+        nrm2 = 0
+        for i in range(len(hist)):
+            nrm2 += hist[i] ** 2
+        threshold = numpy.sqrt(nrm2) * SIFT_DESCR_MAG_THR
+        
+        nrm2 = 0
+        for i in range(len(hist)):
+            val = numpy.min(hist[i], threshold)
+            hist[i] = val
+            nrm2 += val * val
+        factor = 1 / numpy.max(numpy.sqrt(nrm2), 0.0000001)
+    
+        for i in range(len(hist)):
+            hist[i] *= factor
+        return hist
+    
+    def _calc_descriptors(self, first_octave, unflatten):
+        ret = []
+        for i in range(len(self.keypoints)):
+            kpt = self.keypoints[i]
+            assert kpt.octave >= first_octave and kpt.layer <= kpt.noctave_layers + 2
+            scale = 1 / numpy.exp2(kpt.octave)
+            size = kpt.sigma * scale
+            img = self.gaussian_pyramid[(kpt.octave - first_octave) * (kpt.noctave_layers  + 3) + kpt.layer]
+            ret.append(self._calc_SIFT_descriptor(img, kpt.x * scale, kpt.y * scale, kpt.angle, size))
+        if unflatten:
+            return ret
+        return ret.flatten()
     
     def calc_features_for_image(self, I):
         self.noctaves = int(numpy.round(numpy.log2(min(I.shape[0], I.shape[1])))) - 2
