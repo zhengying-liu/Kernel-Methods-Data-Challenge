@@ -4,10 +4,7 @@ import random
 random.seed(123)
 
 from quadratic_program_solver import QuadraticProgramSolver
-from cvxopt import matrix, solvers
 from sklearn.svm import LinearSVC
-
-solvers.options['show_progress'] = False
 
 class KernelSVMBinaryClassifier:
     """
