@@ -49,7 +49,6 @@ def load_features(feature_extractor_name, overwrite_features=True, overwrite_kpc
             Xtrain, gmm = feature_extractor.train(Xtrain)
             Xtest = feature_extractor.predict(Xtest, gmm)
             numpy.save('data/Xtrain_' + feature_extractor_name, Xtrain)
-            Xtest = feature_extractor.predict(Xtest)
             numpy.save('data/Xtest_' + feature_extractor_name, Xtest)
     elif feature_extractor is not None:
         if not overwrite_features and os.path.isfile('data/Xtrain_' + feature_extractor_name + '.npy'):
