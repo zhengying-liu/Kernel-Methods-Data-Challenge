@@ -37,12 +37,16 @@ class SIFT:
         self.descriptors = None
     
     def _create_initial_image(self, I, sigma):
+        grayI = numpy.empty((I.shape[0], I.shape[1]))
+        for x in range(I.shape[0]):
+            for y in range(I.shape[1]):
+                grayI[x, y] = I[x, y, 0] + I[x, y, 1] + I[x, y, 2]
+        
         # Double the size
-        result = inv_transform_image_linear(I, I.shape[0] * 2, I.shape[1] * 2, 0.5, 0, 0, 0)
+        result = inv_transform_image_linear(grayI, I.shape[0] * 2, I.shape[1] * 2, 0.5, 0, 0, 0)
         
         sig_diff = numpy.sqrt(max(sigma * sigma - SIFT_INIT_SIGMA * SIFT_INIT_SIGMA * 4, 0.01))
         self.base_image = gaussian_blur(result, sig_diff)
-        
     
     def _build_gaussian_pyramid(self):
         sig = numpy.empty(self.noctave_layers + 3)
@@ -85,7 +89,7 @@ class SIFT:
     def _calc_orientation_hist(self, I, x, y, radius, hist, n):
         pass
     
-    def _adjust_local_extrema(self, keypoint):
+    def _adjust_local_extrema(self, octave, layer, x, y):
         pass
     
     def _find_scale_space_extrema(self):
@@ -97,9 +101,6 @@ class SIFT:
     def _calc_descriptors(self):
         pass
     
-    def _calc_features_for_channel(self, I):
-        pass
-    
     def calc_features_for_image(self, I):
-        self.noctaves = numpy.round(numpy.log2(min(I.shape[0], I.shape[1]))) - 2
+        self.noctaves = int(numpy.round(numpy.log2(min(I.shape[0], I.shape[1])))) - 2
     

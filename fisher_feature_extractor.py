@@ -3,17 +3,16 @@ from tqdm import tqdm
 
 from fisher_vector import FisherVector
 from hog_feature_extractor import HOGFeatureExtractor
+from sift_feature_extractor import SIFTFeatureExtractor
 
 class FisherFeatureExtractor:
     """
     nbins: number of bins that will be used
     unsigned: if True the sign of the angle is not considered
     """
-    def __init__(self, local_feature_extractor='hog', nclasses=10, nbins=9, unsigned=True):
+    def __init__(self, local_feature_extractor='hog', nclasses=10):
         self.local_feature_extractor = local_feature_extractor
         self.nclasses = nclasses
-        self.nbins = nbins
-        self.unsigned = unsigned
         
     def predict(self, X):
         assert X.ndim == 4
@@ -23,8 +22,11 @@ class FisherFeatureExtractor:
         
         local_features = None
         if self.local_feature_extractor == 'hog':
-            hog = HOGFeatureExtractor(nbins=self.nbins, unsigned=self.unsigned)
+            hog = HOGFeatureExtractor()
             local_features = hog.predict(X, unflatten=True)
+        elif self.local_feature_extractor == 'sift':
+            sift = SIFTFeatureExtractor()
+            local_features = sift.predict(X, unflatten=True)
         else:
             raise Exception("Unknown local feature extractor")
         
