@@ -13,7 +13,7 @@ class HOGFeatureExtractor:
         self.nbins = nbins
         self.unsigned = unsigned
 
-    def _calc_gradient_for_channel(self, I):
+    def _calc_gradient_for_channel(self, I, unflatten):
         nX, nY = I.shape
         histogram = numpy.zeros((4, 4, self.nbins))
 
@@ -85,17 +85,19 @@ class HOGFeatureExtractor:
                 aux = aux / numpy.linalg.norm(aux)
                 ret[i, j, :] = aux
 
+        if unflatten:
+            ret.reshape(9, -1)
         return ret.flatten()
 
-    def _calc_gradient_for_image(self, I, unflatten=False):
+    def _calc_gradient_for_image(self, I, unflatten):
         nchannels = I.shape[2]
         ret = []
 
         for i in range(nchannels):
-            ret.append(self._calc_gradient_for_channel(I[:,:,i]))
+            ret.append(self._calc_gradient_for_channel(I[:,:,i], unflatten))
 
         if unflatten:
-            return numpy.array(ret)
+            return numpy.array(ret).reshape(nchannels * 9, -1)
         return numpy.array(ret).flatten()
 
     def predict(self, X, unflatten=False):
@@ -108,4 +110,3 @@ class HOGFeatureExtractor:
             ret.append(self._calc_gradient_for_image(X[i,:,:,:], unflatten))
 
         return numpy.array(ret)
-    
