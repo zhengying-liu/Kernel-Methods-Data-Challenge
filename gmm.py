@@ -2,7 +2,7 @@
 Guassian Mixture Model, which serves as an input argument of the Fisher Vector.
 Special case: The covariance matrices are assumed to be diagonal matrices.
 """
-
+from tqdm import tqdm
 import numpy
 
 from kmeans import Kmeans
@@ -16,7 +16,6 @@ class Gmm:
     mu: centers of different classes
     sigma: diagonal values of the covariance matrix, represented by a 2d numpy array
     """
-
     def __init__(self, nclasses):
         self.nclasses = nclasses
         self.dim = None
@@ -64,7 +63,8 @@ class Gmm:
         
     def fit(self, data, niter=10):
         self._kmeans_init(data)
-        for _ in range(niter):
+        print("Fitting GMM on local image descriptors")
+        for _ in tqdm(range(niter)):
             self._EM_iterate_once(data)
 
 if __name__ == '__main__':

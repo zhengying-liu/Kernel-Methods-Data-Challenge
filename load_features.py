@@ -12,18 +12,18 @@ def get_feature_extractor(feature_extractor):
     if feature_extractor == 'hog':
         return HOGFeatureExtractor()
     elif feature_extractor == 'hog_fisher':
-        return FisherFeatureExtractor(local_feature_extractor='hog', nclasses=5)
+        return FisherFeatureExtractor(local_feature_extractor_name='hog', nclasses=5)
     elif feature_extractor == 'sift':
         return SIFTFeatureExtractor()
     elif feature_extractor == 'sift_fisher':
-        return FisherFeatureExtractor(local_feature_extractor='sift', nclasses=5)
+        return FisherFeatureExtractor(local_feature_extractor_name='sift', nclasses=5)
     elif feature_extractor == 'kernel_descriptors':
         return KernelDescriptorsExtractor()
     elif feature_extractor == 'raw':
         return None
     else:
         raise Exception("Unknown feature extractor")
-
+    
 def load_features(feature_extractor_name, overwrite_features=True, overwrite_kpca=True,
                     do_kpca=False, kpca_kernel=None, cut_percentage=90):
     Xtrain, Ytrain, Xtest = load_data()
@@ -40,7 +40,18 @@ def load_features(feature_extractor_name, overwrite_features=True, overwrite_kpc
             return Xtrain, Ytrain, Xtest
 
     feature_extractor = get_feature_extractor(feature_extractor_name)
-    if feature_extractor is not None:
+    if feature_extractor_name == 'hog_fisher' or feature_extractor_name == 'sift_fisher':
+        if not overwrite_features and os.path.isfile('data/Xtrain_' + feature_extractor_name + '.npy') \
+                and os.path.isfile('data/Xtest_' + feature_extractor_name + '.npy'):
+            Xtrain = numpy.load('data/Xtrain_' + feature_extractor_name + '.npy')
+            Xtest = numpy.load('data/Xtest_' + feature_extractor_name + '.npy')
+        else:
+            Xtrain, gmm = feature_extractor.train(Xtrain)
+            Xtest = feature_extractor.predict(Xtest, gmm)
+            numpy.save('data/Xtrain_' + feature_extractor_name, Xtrain)
+            Xtest = feature_extractor.predict(Xtest)
+            numpy.save('data/Xtest_' + feature_extractor_name, Xtest)
+    elif feature_extractor is not None:
         if not overwrite_features and os.path.isfile('data/Xtrain_' + feature_extractor_name + '.npy'):
             Xtrain = numpy.load('data/Xtrain_' + feature_extractor_name + '.npy')
         else:

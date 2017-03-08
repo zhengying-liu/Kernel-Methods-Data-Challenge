@@ -2,35 +2,46 @@ import numpy
 from tqdm import tqdm
 
 from fisher_vector import FisherVector
-from hog_feature_extractor import HOGFeatureExtractor
-from sift_feature_extractor import SIFTFeatureExtractor
+from gmm import Gmm
+import load_features
 
 class FisherFeatureExtractor:
     """
-    nbins: number of bins that will be used
-    unsigned: if True the sign of the angle is not considered
+    local_feature_extractor_name: can be either 'hog' or 'sift'
+    nclasses: number of classes used in gmm and fisher vector
     """
-    def __init__(self, local_feature_extractor='hog', nclasses=10):
-        self.local_feature_extractor = local_feature_extractor
+    def __init__(self, local_feature_extractor_name, nclasses=10):
+        self.local_feature_extractor_name = local_feature_extractor_name
         self.nclasses = nclasses
         
-    def predict(self, X):
+    def train(self, X):
         assert X.ndim == 4
-        print("Extracting Fisher features")
+        print("Extracting Fisher features on training data")
         n = X.shape[0]
         ret = []
         
-        local_features = None
-        if self.local_feature_extractor == 'hog':
-            hog = HOGFeatureExtractor()
-            local_features = hog.predict(X, unflatten=True)
-        elif self.local_feature_extractor == 'sift':
-            sift = SIFTFeatureExtractor()
-            local_features = sift.predict(X, unflatten=True)
-        else:
-            raise Exception("Unknown local feature extractor")
+        local_feature_extractor = load_features.get_feature_extractor(self.local_feature_extractor_name)
+        local_features = local_feature_extractor.predict(X, unflatten=True)
         
-        fisher_vector = FisherVector(self.nclasses)
+        gmm = Gmm(nclasses=self.nclasses)
+        gmm.fit(local_features.reshape(-1, local_features.shape[-1]), niter=20)
+        fisher_vector = FisherVector(self.nclasses, len(local_features[0, 0]), gmm.pi, gmm.mu, gmm.sigma)
+
+        for i in tqdm(range(n)):
+            ret.append(fisher_vector.predict(local_features[i,:,:]))
+
+        return numpy.array(ret), gmm
+    
+    def predict(self, X, gmm):
+        assert X.ndim == 4
+        print("Extracting Fisher features on testing data")
+        n = X.shape[0]
+        ret = []
+        
+        local_feature_extractor = load_features.get_feature_extractor(self.local_feature_extractor_name)
+        local_features = local_feature_extractor.predict(X, unflatten=True)
+        
+        fisher_vector = FisherVector(self.nclasses, len(local_features[0, 0]), gmm.pi, gmm.mu, gmm.sigma)
 
         for i in tqdm(range(n)):
             ret.append(fisher_vector.predict(local_features[i,:,:]))

@@ -7,9 +7,9 @@ from kernels import (LinearKernel, GaussianKernel, HistogramIntersectionKernel,
 from svm import KernelSVMOneVsOneClassifier, KernelSVMOneVsAllClassifier
 from utils import plot_history, write_output, concat_bias
 
-output_suffix = 'trial14'
+output_suffix = 'trial15'
 
-feature_extractor = 'hog'
+feature_extractor = 'hog_fisher'
 overwrite_features = False
 
 overwrite_kpca = False

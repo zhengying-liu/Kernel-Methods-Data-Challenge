@@ -2,6 +2,7 @@
 K-means algorithm, which serves as the initialization of GMM.
 """
 
+from tqdm import tqdm
 import numpy
 
 class Kmeans:
@@ -11,7 +12,6 @@ class Kmeans:
     z: assignment
     mu: centers of different clusters
     """
-
     def __init__(self, nclusters):
         self.nclusters = nclusters
         self.dim = None
@@ -43,10 +43,11 @@ class Kmeans:
                     self.mu[k, d] /= count[k]
     
     def fit(self, data, niter=1, warm_start=False):
+        print("Fitting K-Means on local image descriptors")
         if not(warm_start):
             self.dim = len(data[0])
             self.mu = numpy.matrix(numpy.zeros((self.nclusters, self.dim)))
-        for _ in range(niter):
+        for _ in tqdm(range(niter)):
             self._assignCluster(data)
             self._updateCenter(data)
     
