@@ -2,6 +2,11 @@ import matplotlib.pyplot as plt
 import numpy
 import os
 
+# n_train = 5000
+n_train = 20
+# n_test = 2000
+n_test = 10
+
 def reshape_images(X):
     n = X.shape[0]
     X = numpy.reshape(X, (n, 3, 32, 32))
@@ -22,7 +27,7 @@ def load_data(overwrite=False):
         Ytrain = numpy.load('data/Ytrain.npy')
     else:
         aux = numpy.genfromtxt('data/Ytr.csv', delimiter=',', names=True)
-        Ytrain = numpy.zeros((5000,), dtype=numpy.int32)
+        Ytrain = numpy.zeros((n_train,), dtype=numpy.int32)
         for i, y in enumerate(aux):
             Ytrain[i] = int(y[1])
         numpy.save('data/Ytrain', Ytrain)
@@ -40,7 +45,7 @@ def load_data(overwrite=False):
     return Xtrain, Ytrain, Xtest
 
 def write_output(Y, filename):
-    assert(Y.shape[0] == 2000)
+    assert(Y.shape[0] == n_test)
     f = open(filename, 'w')
     f.write('Id,Prediction\n')
 
