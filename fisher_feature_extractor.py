@@ -10,7 +10,7 @@ class FisherFeatureExtractor:
     local_feature_extractor_name: can be either 'hog' or 'sift'
     nclasses: number of classes used in gmm and fisher vector
     """
-    def __init__(self, local_feature_extractor_name, nclasses=10):
+    def __init__(self, local_feature_extractor_name, nclasses=256):
         self.local_feature_extractor_name = local_feature_extractor_name
         self.nclasses = nclasses
         
