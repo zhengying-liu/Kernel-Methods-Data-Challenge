@@ -198,8 +198,8 @@ class KernelSVMBinaryClassifier:
         self.X = X[ind, :]
         self.alpha = alpha[ind]
 
-        if check:
-            print "Accuracy on training data: %.3f" % self._calc_accuracy(X, y)
+        #if check:
+        #    print "Accuracy on training data: %.3f" % self._calc_accuracy(X, y)
 
     def predict(self, X, confidence=False):
         n = X.shape[0]
