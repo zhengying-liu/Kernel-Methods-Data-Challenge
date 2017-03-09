@@ -403,7 +403,7 @@ class SIFT:
             assert kpt.octave >= first_octave and kpt.layer <= kpt.noctave_layers + 2
             scale = 1 / numpy.exp2(kpt.octave)
             size = kpt.sigma * scale
-            img = self.gaussian_pyramid[(kpt.octave - first_octave) * (kpt.noctave_layers  + 3) + kpt.layer]
+            img = self.gaussian_pyramid[(kpt.octave - first_octave) * (kpt.noctave_layers + 3) + kpt.layer]
             ret.append(self._calc_SIFT_descriptor(img, kpt.x * scale, kpt.y * scale, kpt.angle, size))
         if unflatten:
             return ret
