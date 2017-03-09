@@ -8,10 +8,14 @@ http://docs.opencv.org/2.4/modules/nonfree/doc/feature_detection.html
 https://github.com/opencv/opencv/blob/2.4/modules/nonfree/src/sift.cpp
 """
 
+import matplotlib.pyplot as plt
 import numpy
 
 from keypoint import Keypoint
 from image_utils import gaussian_blur, inv_transform_image_linear
+from matplotlib.patches import Circle
+
+plot = False
 
 # assumed gaussian blur for input image
 SIFT_INIT_SIGMA = 0.5
@@ -20,7 +24,7 @@ SIFT_INIT_SIGMA = 0.5
 SIFT_ORI_HIST_BINS = 8
 
 # width of border in which to ignore keypoints
-SIFT_IMG_BORDER = 5
+SIFT_IMG_BORDER = 4 # 5
 
 # maximum steps of keypoint interpolation before failure
 SIFT_MAX_INTERP_STEPS = 5
@@ -84,7 +88,8 @@ class SIFT:
     
     def _build_gaussian_pyramid(self):
         sig = numpy.empty(self.noctave_layers + 3)
-        self.gaussian_pyramid = numpy.empty(self.noctave * (self.noctave_layers + 3))
+        # self.gaussian_pyramid = numpy.empty(self.noctaves * (self.noctave_layers + 3))
+        self.gaussian_pyramid = []
         
         sig[0] = self.sigma
         k = numpy.power(2., 1. / self.noctave_layers)
@@ -95,30 +100,31 @@ class SIFT:
 
         for o in range(self.noctaves):
             for i in range(self.noctave_layers + 3):
-                dst = o * (self.noctave_layers + 3) + i
+                # dst = o * (self.noctave_layers + 3) + i
                 if o == 0 and i == 0:
-                    self.gaussian_pyramid[dst] = self.base_image
+                    self.gaussian_pyramid.append(self.base_image)
                 # base of new octave is halved image from end of previous octave
                 elif i == 0:
                     src = (o - 1) * (self.noctave_layers + 3) + self.noctave_layers;
-                    self.gaussian_pyramid[dst] = inv_transform_image_linear(
+                    self.gaussian_pyramid.append(inv_transform_image_linear(
                         self.gaussian_pyramid[src],
                         self.gaussian_pyramid[src].shape[0] / 2,
                         self.gaussian_pyramid[src].shape[1] / 2,
-                        2, 0, 0, 0)
+                        2, 0, 0, 0))
                 else:
                     src = o * (self.noctave_layers + 3) + i - 1
-                    self.gaussian_pyramid[dst] = gaussian_blur(self.gaussian_pyramid[src], sig[i])
-    
+                    self.gaussian_pyramid.append(gaussian_blur(self.gaussian_pyramid[src], sig[i]))
+                        
     def _build_DoG_pyramid(self):
-        self.dog_pyramid = numpy.empty(self.noctaves * (self.noctave_layers + 2))
+        # self.dog_pyramid = numpy.empty(self.noctaves * (self.noctave_layers + 2))
+        self.dog_pyramid = []
 
         for o in range(self.noctaves):
             for i in range(self.noctave_layers + 2):
                 src1 = o * (self.noctave_layers + 3) + i
                 src2 = src1 + 1
-                dst = o * (self.noctave_layers + 2) + i
-                self.dog_pyramid[dst] = self.gaussian_pyramid[src2] - self.gaussian_pyramid[src1]
+                # dst = o * (self.noctave_layers + 2) + i
+                self.dog_pyramid.append(self.gaussian_pyramid[src2] - self.gaussian_pyramid[src1])
     
     # Computes a gradient orientation histogram at a specified pixel
     def _calc_orientation_hist(self, I, px, py, radius, weight_sigma, nbins):
@@ -144,7 +150,7 @@ class SIFT:
                 angle = numpy.arctan2(dy, dx)
                 mag = numpy.sqrt(dx * dx + dy * dy)
                 
-                binnum = int(numpy.round((nbins / 2 * numpy.pi) * angle))
+                binnum = int(numpy.round((nbins / (2 * numpy.pi)) * angle))
                 if binnum >= nbins:
                     binnum -= nbins
                 if binnum < 0:
@@ -240,9 +246,11 @@ class SIFT:
         return kpt, layer, x, y
     
     def _find_scale_space_extrema(self):
-        threshold = numpy.floor(0.5 * self.contrast_threshold / self.noctave_layers)
+        threshold = 0.5 * self.contrast_threshold / self.noctave_layers
     
         self.keypoints = []
+        
+        ncandidate = 0
     
         for o in range(self.noctaves):
             for i in range(1, self.noctave_layers + 1):
@@ -259,31 +267,38 @@ class SIFT:
     
                         # find local extrema with pixel accuracy
                         if abs(val) > threshold and ((
+#                             val > 0 and val >= img[x, y-1] and val >= img[x, y+1] and
+#                             val >= img[x-1, y-1] and val >= img[x-1, y] and val >= img[x-1, y+1] and
+#                             val >= img[x+1, y-1] and val >= img[x+1, y] and val >= img[x+1, y+1] and
+#                             val >= nxt[x-1, y-1] and val >= nxt[x-1, y] and val >= nxt[x-1, y+1] and
+#                             val >= nxt[x, y-1] and val >= nxt[x, y] and val >= nxt[x, y+1] and
+#                             val >= nxt[x+1, y-1] and val >= nxt[x+1, y] and val >= nxt[x+1, y+1] and
+#                             val >= prv[x-1, y-1] and val >= prv[x-1, y] and val >= prv[x-1, y+1] and
+#                             val >= prv[x, y-1] and val >= prv[x, y] and val >= prv[x, y+1] and
+#                             val >= prv[x+1, y-1] and val >= prv[x+1, y] and val >= prv[x+1, y+1]) or (
+#                             val < 0 and val <= img[x, y-1] and val <= img[x, y+1] and
+#                             val <= img[x-1, y-1] and val <= img[x-1, y] and val <= img[x-1, y+1] and
+#                             val <= img[x+1, y-1] and val <= img[x+1, y] and val <= img[x+1, y+1] and
+#                             val <= nxt[x-1, y-1] and val <= nxt[x-1, y] and val <= nxt[x-1, y+1] and
+#                             val <= nxt[x, y-1] and val <= nxt[x, y] and val <= nxt[x, y+1] and
+#                             val <= nxt[x+1, y-1] and val <= nxt[x+1, y] and val <= nxt[x+1, y+1] and
+#                             val <= prv[x-1, y-1] and val <= prv[x-1, y] and val <= prv[x-1, y+1] and
+#                             val <= prv[x, y-1] and val <= prv[x, y] and val <= prv[x, y+1] and
+#                             val <= prv[x+1, y-1] and val <= prv[x+1, y] and val <= prv[x+1, y+1])):
                             val > 0 and val >= img[x, y-1] and val >= img[x, y+1] and
-                            val >= img[x-1, y-1] and val >= img[x-1, y] and val >= img[x-1, y+1] and
-                            val >= img[x+1, y-1] and val >= img[x+1, y] and val >= img[x+1, y+1] and
-                            val >= nxt[x-1, y-1] and val >= nxt[x-1, y] and val >= nxt[x-1, y+1] and
-                            val >= nxt[x, y-1] and val >= nxt[x, y] and val >= nxt[x, y+1] and
-                            val >= nxt[x+1, y-1] and val >= nxt[x+1, y] and val >= nxt[x+1, y+1] and
-                            val >= prv[x-1, y-1] and val >= prv[x-1, y] and val >= prv[x-1, y+1] and
-                            val >= prv[x, y-1] and val >= prv[x, y] and val >= prv[x, y+1] and
-                            val >= prv[x+1, y-1] and val >= prv[x+1, y] and val >= prv[x+1, y+1]) or (
+                            val >= img[x+1, y] and val >= img[x-1, y] and
+                            val >= nxt[x, y] and val >= prv[x, y]) or (
                             val < 0 and val <= img[x, y-1] and val <= img[x, y+1] and
-                            val <= img[x-1, y-1] and val <= img[x-1, y] and val <= img[x-1, y+1] and
-                            val <= img[x+1, y-1] and val <= img[x+1, y] and val <= img[x+1, y+1] and
-                            val <= nxt[x-1, y-1] and val <= nxt[x-1, y] and val <= nxt[x-1, y+1] and
-                            val <= nxt[x, y-1] and val <= nxt[x, y] and val <= nxt[x, y+1] and
-                            val <= nxt[x+1, y-1] and val <= nxt[x+1, y] and val <= nxt[x+1, y+1] and
-                            val <= prv[x-1, y-1] and val <= prv[x-1, y] and val <= prv[x-1, y+1] and
-                            val <= prv[x, y-1] and val <= prv[x, y] and val <= prv[x, y+1] and
-                            val <= prv[x+1, y-1] and val <= prv[x+1, y] and val <= prv[x+1, y+1])):
+                            val <= img[x+1, y] and val <= img[x-1, y] and
+                            val <= nxt[x, y] and val <= prv[x, y])):
                             
+                            ncandidate += 1
                             kpt, i2, x2, y2 = self._adjust_local_extrema(o, i, x, y)
                             if kpt is None:
                                 continue
                             scl_octv = kpt.sigma / (1 << o)
                             n = SIFT_ORI_HIST_BINS
-                            hist = self._calc_orientation_hist(self.gauss_pyramid[o * (self.noctave_layers + 3) + i2],
+                            hist = self._calc_orientation_hist(self.gaussian_pyramid[o * (self.noctave_layers + 3) + i2],
                                                                x2,
                                                                y2,
                                                                int(numpy.round(SIFT_ORI_RADIUS * scl_octv)),
@@ -304,14 +319,14 @@ class SIFT:
     def _calc_SIFT_descriptor(self, I, xf, yf, angle, sigma):
         d = SIFT_DESCR_WIDTH
         n = SIFT_DESCR_HIST_BINS
-        x = numpy.round(xf)
-        y = numpy.round(yf)
+        x = int(numpy.round(xf))
+        y = int(numpy.round(yf))
         cos_t = numpy.cos(angle)
         sin_t = numpy.sin(angle)
         bins_per_rad = n / (2 * numpy.pi)
         exp_scale = -1./(d * d * 0.5)
         hist_width = SIFT_DESCR_SCL_FCTR * sigma
-        radius = numpy.round(hist_width * 1.4142135623730951 * (d + 1) * 0.5)
+        radius = int(numpy.round(hist_width * 1.4142135623730951 * (d + 1) * 0.5))
         cos_t /= hist_width
         sin_t /= hist_width
         
@@ -332,15 +347,15 @@ class SIFT:
                 xt = x + i
                 yt = y + j
     
-                if xbin >= 0 and xbin < d and ybin >= 0 and ybin < d and xt > 0 and xt < width - 1 and yt > 0 and yt < height - 1:
+                if xbin >= 0 and xbin < d - 1 and ybin >= 0 and ybin < d - 1 and xt > 0 and xt < width - 1 and yt > 0 and yt < height - 1:
                     dx = I[x+1, y] - I[x-1, y]
                     dy = I[x, y+1] - I[x, y-1]
                     grad_angle = numpy.arctan2(dy, dx)
                     grad_mag = numpy.sqrt(dx * dx + dy * dy) * numpy.exp((x_rot * x_rot + y_rot * y_rot) * exp_scale)
                     obin = (grad_angle - angle) * bins_per_rad
-                    x0 = numpy.floor(xbin)
-                    y0 = numpy.floor(ybin)
-                    o0 = numpy.floor(obin)
+                    x0 = int(numpy.floor(xbin))
+                    y0 = int(numpy.floor(ybin))
+                    o0 = int(numpy.floor(obin))
                     xbin -= x0
                     ybin -= y0
                     obin -= o0
@@ -400,17 +415,17 @@ class SIFT:
         ret = []
         for i in range(len(self.keypoints)):
             kpt = self.keypoints[i]
-            assert kpt.octave >= -1 and kpt.layer <= kpt.noctave_layers + 2
+            assert kpt.octave >= -1 and kpt.layer <= self.noctave_layers + 2
             scale = 1 / numpy.exp2(kpt.octave)
             size = kpt.sigma * scale
-            img = self.gaussian_pyramid[(kpt.octave + 1) * (kpt.noctave_layers + 3) + kpt.layer]
+            img = self.gaussian_pyramid[(kpt.octave + 1) * (self.noctave_layers + 3) + int(numpy.round(kpt.layer))]
             ret.append(self._calc_SIFT_descriptor(img, kpt.x * scale, kpt.y * scale, kpt.angle, size))
         if unflatten:
-            return ret
-        return ret.flatten()
+            return numpy.array(ret)
+        return numpy.array(ret).flatten()
     
     def calc_features_for_image(self, I, unflatten):
-        self.noctaves = int(numpy.round(numpy.log2(min(I.shape[0], I.shape[1])))) - 2
+        self.noctaves = int(numpy.round(numpy.log2(min(I.shape[0], I.shape[1])))) - 1
         self._create_initial_image(I)
         self._build_gaussian_pyramid()
         self._build_DoG_pyramid()
@@ -427,12 +442,27 @@ class SIFT:
                     self.keypoints[i].angle != self.keypoints[i - 1].angle:
                 filtered_keypoints.append(self.keypoints[i])
         # retain best
-        self.keypoints = filtered_keypoints[:self.nfeatures]
+        if len(self.keypoints) > self.nfeatures:
+            self.keypoints = filtered_keypoints[:self.nfeatures]
+        elif not unflatten:
+            for i in range(len(self.keypoints), self.nfeatures):
+                self.keypoints.append(self.keypoints[0].clone())
         
         for kpt in self.keypoints:
             kpt.octave -= 1
-            kpt.pt /= 2
+            kpt.x /= 2
+            kpt.y /= 2
             kpt.sigma /= 2
+            
+        if plot:  
+            _, ax = plt.subplots(1)
+            ax.set_aspect('equal')  
+            ax.imshow(I * 2.5 + 0.5, interpolation='none')
+            for kpt in self.keypoints:
+                circle = Circle((kpt.y, kpt.x), kpt.sigma)
+                ax.add_patch(circle)
+            
+            plt.show()
         
         return self._calc_descriptors(unflatten)
     
