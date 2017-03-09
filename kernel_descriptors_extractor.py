@@ -48,10 +48,8 @@ class KernelDescriptorsExtractor:
         kdes_dim = self.projector_o.ndim * self.projector_p.ndim
         X_o = self.projector_o.predict(self.projector_o.basis)
         X_op = numpy.zeros((kdes_dim, kdes_dim))
-        pos = 0
-        for x in X_o:
-            for y in X_p:
-                X_op[pos, :] = numpy.kron(x, y)
+        for i, (x,y) in enumerate(zip(X_o, X_p)):
+            X_op[i, :] = numpy.kron(x, y)
         self.kpca_op = KernelPCA(kpca_kernel)
         self.kpca_op.fit(X_op)
 
