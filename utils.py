@@ -2,10 +2,10 @@ import matplotlib.pyplot as plt
 import numpy
 import os
 
-# n_train = 5000
-# n_test = 2000
-n_train = 20
-n_test = 10
+n_train = 5000
+n_test = 2000
+# n_train = 20
+# n_test = 10
 
 def reshape_images(X):
     n = X.shape[0]

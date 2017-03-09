@@ -6,8 +6,8 @@ from gmm import Gmm
 import load_features
 from pca import pca 
 
-# n_components = 16
-n_components = 3
+n_components = 32
+# n_components = 3
 
 def _concat_2d_arrays(list_of_arrays):
     temp = []

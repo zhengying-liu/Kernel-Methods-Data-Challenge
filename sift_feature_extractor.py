@@ -11,7 +11,7 @@ class SIFTFeatureExtractor:
     edge_threshold: The threshold used to filter out edge-like features. Note that the its meaning is different from the contrastThreshold, i.e. the larger the edgeThreshold, the less features are filtered out (more features are retained).
     sigma: The sigma of the Gaussian applied to the input image at the octave #0. If your image is captured with a weak camera with soft lenses, you might want to reduce the number.
     """
-    def __init__(self, nfeatures=5, noctave_layers=3, contrast_threshold=0.001, edge_threshold=10, sigma=1.6):
+    def __init__(self, nfeatures=10, noctave_layers=3, contrast_threshold=0.001, edge_threshold=10, sigma=1.6):
         self.nfeatures = nfeatures
         self.noctave_layers = noctave_layers
         self.contrast_threshold = contrast_threshold
