@@ -431,28 +431,35 @@ class SIFT:
         self._build_DoG_pyramid()
         self._find_scale_space_extrema()
         
-        assert len(self.keypoints) > 0
-        self.keypoints.sort(key=lambda kpt: kpt.response, reverse=True)
-        # remove duplicate
-        filtered_keypoints = [self.keypoints[0]]
-        for i in range(1, len(self.keypoints)):
-            if self.keypoints[i].x != self.keypoints[i - 1].x or \
-                    self.keypoints[i].y != self.keypoints[i - 1].y or \
-                    self.keypoints[i].sigma != self.keypoints[i - 1].sigma or \
-                    self.keypoints[i].angle != self.keypoints[i - 1].angle:
-                filtered_keypoints.append(self.keypoints[i])
-        # retain best
-        if len(self.keypoints) > self.nfeatures:
-            self.keypoints = filtered_keypoints[:self.nfeatures]
-        elif not unflatten:
-            for i in range(len(self.keypoints), self.nfeatures):
-                self.keypoints.append(self.keypoints[0].clone())
-        
-        for kpt in self.keypoints:
-            kpt.octave -= 1
-            kpt.x /= 2
-            kpt.y /= 2
-            kpt.sigma /= 2
+        if len(self.keypoints) == 0:
+            kpt = Keypoint()
+            kpt.x = 16
+            kpt.y = 16
+            kpt.octave = 3
+            kpt.sigma = self.sigma * numpy.power(2.0, kpt.layer / self.noctave_layers) * (1 << kpt.octave)
+            self.keypoints.append(kpt)
+        else:
+            self.keypoints.sort(key=lambda kpt: kpt.response, reverse=True)
+            # remove duplicate
+            filtered_keypoints = [self.keypoints[0]]
+            for i in range(1, len(self.keypoints)):
+                if self.keypoints[i].x != self.keypoints[i - 1].x or \
+                        self.keypoints[i].y != self.keypoints[i - 1].y or \
+                        self.keypoints[i].sigma != self.keypoints[i - 1].sigma or \
+                        self.keypoints[i].angle != self.keypoints[i - 1].angle:
+                    filtered_keypoints.append(self.keypoints[i])
+            # retain best
+            if len(self.keypoints) > self.nfeatures:
+                self.keypoints = filtered_keypoints[:self.nfeatures]
+            elif not unflatten:
+                for i in range(len(self.keypoints), self.nfeatures):
+                    self.keypoints.append(self.keypoints[0].clone())
+            
+            for kpt in self.keypoints:
+                kpt.octave -= 1
+                kpt.x /= 2
+                kpt.y /= 2
+                kpt.sigma /= 2
             
         if plot:  
             _, ax = plt.subplots(1)
