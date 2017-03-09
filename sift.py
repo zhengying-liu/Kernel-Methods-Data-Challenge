@@ -70,7 +70,7 @@ class SIFT:
         self.keypoints = None
         self.descriptors = None
     
-    def _create_initial_image(self, I, sigma):
+    def _create_initial_image(self, I):
         grayI = numpy.empty((I.shape[0], I.shape[1]))
         for x in range(I.shape[0]):
             for y in range(I.shape[1]):
@@ -79,7 +79,7 @@ class SIFT:
         # Double the size
         result = inv_transform_image_linear(grayI, I.shape[0] * 2, I.shape[1] * 2, 0.5, 0, 0, 0)
         
-        sig_diff = numpy.sqrt(max(sigma * sigma - SIFT_INIT_SIGMA * SIFT_INIT_SIGMA * 4, 0.01))
+        sig_diff = numpy.sqrt(max(self.sigma * self.sigma - SIFT_INIT_SIGMA * SIFT_INIT_SIGMA * 4, 0.01))
         self.base_image = gaussian_blur(result, sig_diff)
     
     def _build_gaussian_pyramid(self):
@@ -396,19 +396,43 @@ class SIFT:
             hist[i] *= factor
         return hist
     
-    def _calc_descriptors(self, first_octave, unflatten):
+    def _calc_descriptors(self, unflatten):
         ret = []
         for i in range(len(self.keypoints)):
             kpt = self.keypoints[i]
-            assert kpt.octave >= first_octave and kpt.layer <= kpt.noctave_layers + 2
+            assert kpt.octave >= -1 and kpt.layer <= kpt.noctave_layers + 2
             scale = 1 / numpy.exp2(kpt.octave)
             size = kpt.sigma * scale
-            img = self.gaussian_pyramid[(kpt.octave - first_octave) * (kpt.noctave_layers + 3) + kpt.layer]
+            img = self.gaussian_pyramid[(kpt.octave + 1) * (kpt.noctave_layers + 3) + kpt.layer]
             ret.append(self._calc_SIFT_descriptor(img, kpt.x * scale, kpt.y * scale, kpt.angle, size))
         if unflatten:
             return ret
         return ret.flatten()
     
-    def calc_features_for_image(self, I):
+    def calc_features_for_image(self, I, unflatten):
         self.noctaves = int(numpy.round(numpy.log2(min(I.shape[0], I.shape[1])))) - 2
+        self._create_initial_image(I)
+        self._build_gaussian_pyramid()
+        self._build_DoG_pyramid()
+        self._find_scale_space_extrema()
+        
+        assert len(self.keypoints) > 0
+        self.keypoints.sort(key=lambda kpt: kpt.response, reverse=True)
+        # remove duplicate
+        filtered_keypoints = [self.keypoints[0]]
+        for i in range(1, len(self.keypoints)):
+            if self.keypoints[i].x != self.keypoints[i - 1].x or \
+                    self.keypoints[i].y != self.keypoints[i - 1].y or \
+                    self.keypoints[i].sigma != self.keypoints[i - 1].sigma or \
+                    self.keypoints[i].angle != self.keypoints[i - 1].angle:
+                filtered_keypoints.append(self.keypoints[i])
+        # retain best
+        self.keypoints = filtered_keypoints[:self.nfeatures]
+        
+        for kpt in self.keypoints:
+            kpt.octave -= 1
+            kpt.pt /= 2
+            kpt.sigma /= 2
+        
+        return self._calc_descriptors(unflatten)
     
