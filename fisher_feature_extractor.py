@@ -16,12 +16,18 @@ def _concat_2d_arrays(list_of_arrays):
             temp.append(list_of_arrays[i][j,:])
     return numpy.array(temp)
 
+def _concat_first_vectors(list_of_arrays):
+    temp = []
+    for i in range(len(list_of_arrays)):
+        temp.append(list_of_arrays[i][0,:])
+    return numpy.array(temp)
+
 class FisherFeatureExtractor:
     """
     local_feature_extractor_name: can be either 'hog' or 'sift'
     nclasses: number of classes used in gmm and fisher vector
     """
-    def __init__(self, local_feature_extractor_name, nclasses=256, kmeans_niter=10, gmm_niter=10):
+    def __init__(self, local_feature_extractor_name, nclasses=128, kmeans_niter=10, gmm_niter=10):
         self.local_feature_extractor_name = local_feature_extractor_name
         self.nclasses = nclasses
         self.kmeans_niter = kmeans_niter
@@ -50,7 +56,7 @@ class FisherFeatureExtractor:
             local_features_pca.append(numpy.array(numpy.matrix(local_features[i]) * V_truncate))
         
         gmm = Gmm(nclasses=self.nclasses)
-        gmm.fit(_concat_2d_arrays(local_features_pca), kmeans_niter=self.kmeans_niter, niter=self.gmm_niter)
+        gmm.fit(_concat_first_vectors(local_features_pca), kmeans_niter=self.kmeans_niter, niter=self.gmm_niter)
         fisher_vector = FisherVector(self.nclasses, len(local_features_pca[0][0]), gmm.pi, gmm.mu, gmm.sigma)
 
         for i in tqdm(range(n)):
