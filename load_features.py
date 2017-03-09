@@ -46,8 +46,8 @@ def load_features(feature_extractor_name, overwrite_features=True, overwrite_kpc
             Xtrain = numpy.load(folder_name + 'Xtrain_' + feature_extractor_name + '.npy')
             Xtest = numpy.load(folder_name + 'Xtest_' + feature_extractor_name + '.npy')
         else:
-            Xtrain, gmm = feature_extractor.train(Xtrain)
-            Xtest = feature_extractor.predict(Xtest, gmm)
+            Xtrain, V_truncate, gmm = feature_extractor.train(Xtrain)
+            Xtest = feature_extractor.predict(Xtest, V_truncate, gmm)
             numpy.save(folder_name + 'Xtrain_' + feature_extractor_name, Xtrain)
             numpy.save(folder_name + 'Xtest_' + feature_extractor_name, Xtest)
     elif feature_extractor is not None:
