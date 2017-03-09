@@ -26,10 +26,7 @@ class SIFTFeatureExtractor:
 
         for i in tqdm(range(n)):
             sift = SIFT(self.nfeatures, self.noctave_layers, self.contrast_threshold, self.edge_threshold, self.sigma)
-            if unflatten:
-                ret.append(sift.calc_features_for_image(X[i,:,:,:]))
-            else:
-                ret.append(sift.calc_features_for_image(X[i,:,:,:]).flatten())
+            ret.append(sift.calc_features_for_image(X[i,:,:,:], unflatten))
         
         return numpy.array(ret)
     

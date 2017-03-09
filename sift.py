@@ -38,7 +38,7 @@ SIFT_ORI_RADIUS = 3 * SIFT_ORI_SIG_FCTR
 SIFT_ORI_PEAK_RATIO = 0.8
 
 # default width of descriptor histogram array
-SIFT_DESCR_WIDTH = 4
+SIFT_DESCR_WIDTH = 2 # 4
 
 # default number of bins per histogram in descriptor array
 SIFT_DESCR_HIST_BINS = 8

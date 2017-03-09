@@ -9,7 +9,7 @@ from utils import plot_history, write_output, concat_bias
 
 output_suffix = 'trial15'
 
-feature_extractor = 'hog_fisher'
+feature_extractor = 'sift'
 overwrite_features = False
 
 overwrite_kpca = False
