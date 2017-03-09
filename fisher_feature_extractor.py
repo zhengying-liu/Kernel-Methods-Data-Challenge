@@ -7,8 +7,8 @@ from kernel_pca import KernelPCA
 from kernels import LinearKernel
 import load_features
 
-# n_components = 64
-n_components = 3
+n_components = 64
+# n_components = 3
 
 class FisherFeatureExtractor:
     """

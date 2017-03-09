@@ -17,7 +17,7 @@ kernel_pca = True
 kernel_pca_kernel = GaussianKernel(0.6)
 cut_percentage = 90
 # to change when small data: n_train and n_test in utils.py, n_components in fisher_feature_extractor.py
-folder_name = 'data_small/'
+folder_name = 'data/'
 
 nclasses = 10
 classifier = 'svm_ovo'
