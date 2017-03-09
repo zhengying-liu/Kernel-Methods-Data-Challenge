@@ -16,6 +16,8 @@ overwrite_kpca = False
 kernel_pca = True
 kernel_pca_kernel = GaussianKernel(0.6)
 cut_percentage = 90
+# to change when small data: n_train and n_test in utils.py, n_components in fisher_feature_extractor.py
+folder_name = 'data_small/'
 
 nclasses = 10
 classifier = 'svm_ovo'
@@ -28,7 +30,7 @@ svm_kernel = LinearKernel()
 C = 1
 
 Xtrain, Ytrain, Xtest = load_features(feature_extractor, overwrite_features, overwrite_kpca,
-                                        kernel_pca, kernel_pca_kernel, cut_percentage)
+                                        kernel_pca, kernel_pca_kernel, cut_percentage, folder_name)
 #Xtrain = numpy.reshape(Xtrain, (Xtrain.shape[0], -1))
 #Xtest = numpy.reshape(Xtest, (Xtest.shape[0], -1))
 print(Xtrain.shape)

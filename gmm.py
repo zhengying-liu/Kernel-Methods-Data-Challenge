@@ -23,10 +23,10 @@ class Gmm:
         self.mu = None
         self.sigma = None
     
-    def _kmeans_init(self, data):
+    def _kmeans_init(self, data, niter):
         self.dim = len(data[0])
         kmeans = Kmeans(nclusters=self.nclasses)
-        kmeans.fit(data=data, niter=20)
+        kmeans.fit(data=data, niter=niter)
         self.mu = kmeans.mu
         self.sigma = numpy.ones(shape=(self.nclasses, self.dim))
 
@@ -61,8 +61,8 @@ class Gmm:
         self.mu = mu_new
         self.sigma = sigma_new
         
-    def fit(self, data, niter=20):
-        self._kmeans_init(data)
+    def fit(self, data, kmeans_niter=10, niter=10):
+        self._kmeans_init(data, niter=kmeans_niter)
         print("Fitting GMM on local image descriptors")
         for _ in tqdm(range(niter)):
             self._EM_iterate_once(data)

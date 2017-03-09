@@ -2,10 +2,10 @@ import matplotlib.pyplot as plt
 import numpy
 import os
 
-n_train = 5000
-n_test = 2000
-# n_train = 20
-# n_test = 10
+# n_train = 5000
+# n_test = 2000
+n_train = 20
+n_test = 10
 
 def reshape_images(X):
     n = X.shape[0]
@@ -14,33 +14,33 @@ def reshape_images(X):
     X = numpy.swapaxes(X, 2, 3)
     return X
 
-def load_data(overwrite=False):
-    if not overwrite and os.path.isfile('data/Xtrain.npy'):
-        Xtrain = numpy.load('data/Xtrain.npy')
+def load_data(folder_name='data/', overwrite=False):
+    if not overwrite and os.path.isfile(folder_name + 'Xtrain.npy'):
+        Xtrain = numpy.load(folder_name + 'Xtrain.npy')
     else:
-        Xtrain = numpy.genfromtxt('data/Xtr.csv', delimiter=',')
+        Xtrain = numpy.genfromtxt(folder_name + 'Xtr.csv', delimiter=',')
         Xtrain = Xtrain[:,:3072]
         Xtrain = reshape_images(Xtrain)
-        numpy.save('data/Xtrain', Xtrain)
+        numpy.save(folder_name + 'Xtrain', Xtrain)
 
-    if not overwrite and os.path.isfile('data/Ytrain.npy'):
-        Ytrain = numpy.load('data/Ytrain.npy')
+    if not overwrite and os.path.isfile(folder_name + 'Ytrain.npy'):
+        Ytrain = numpy.load(folder_name + 'Ytrain.npy')
     else:
-        aux = numpy.genfromtxt('data/Ytr.csv', delimiter=',', names=True)
+        aux = numpy.genfromtxt(folder_name + 'Ytr.csv', delimiter=',', names=True)
         Ytrain = numpy.zeros((n_train,), dtype=numpy.int32)
         for i, y in enumerate(aux):
             Ytrain[i] = int(y[1])
-        numpy.save('data/Ytrain', Ytrain)
+        numpy.save(folder_name + 'Ytrain', Ytrain)
 
     assert Xtrain.shape[0] == Ytrain.shape[0]
 
-    if not overwrite and os.path.isfile('data/Xtest.npy'):
-        Xtest = numpy.load('data/Xtest.npy')
+    if not overwrite and os.path.isfile(folder_name + 'Xtest.npy'):
+        Xtest = numpy.load(folder_name + 'Xtest.npy')
     else:
-        Xtest = numpy.genfromtxt('data/Xte.csv', delimiter=',')
+        Xtest = numpy.genfromtxt(folder_name + 'Xte.csv', delimiter=',')
         Xtest = Xtest[:,:3072]
         Xtest = reshape_images(Xtest)
-        numpy.save('data/Xtest', Xtest)
+        numpy.save(folder_name + 'Xtest', Xtest)
 
     return Xtrain, Ytrain, Xtest
 

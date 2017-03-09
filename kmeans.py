@@ -42,7 +42,7 @@ class Kmeans:
                 if count[k] != 0:
                     self.mu[k, d] /= count[k]
     
-    def fit(self, data, niter=20, warm_start=False):
+    def fit(self, data, niter=10, warm_start=False):
         print("Fitting K-Means on local image descriptors")
         if not(warm_start):
             self.dim = len(data[0])
