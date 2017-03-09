@@ -2,7 +2,7 @@ from tqdm import tqdm
 import numpy
 
 class Kernel:
-    def __init__():
+    def __init__(self):
         self.name = None
 
     def calc(self, x, y):
@@ -112,7 +112,8 @@ class SublinearRBFKernel(Kernel):
         return numpy.exp(-numpy.sum(numpy.abs(x - y))**0.5 / self.sigma**2)
 
 class HellingerKernel(Kernel):
-    def __init__(self):
+    def __init__(self, sigma):
+        self.sigma = sigma
         self.name = 'hellinger_%.5f' % sigma
 
     def calc(self, x, y):
