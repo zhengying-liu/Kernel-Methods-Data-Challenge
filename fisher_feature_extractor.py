@@ -3,12 +3,11 @@ from tqdm import tqdm
 
 from fisher_vector import FisherVector
 from gmm import Gmm
-from kernel_pca import KernelPCA
-from kernels import LinearKernel
 import load_features
+from pca import pca 
 
-n_components = 64
-# n_components = 3
+# n_components = 32
+n_components = 3
 
 class FisherFeatureExtractor:
     """
@@ -30,19 +29,17 @@ class FisherFeatureExtractor:
         local_feature_extractor = load_features.get_feature_extractor(self.local_feature_extractor_name)
         local_features = local_feature_extractor.predict(X, unflatten=True)
         
-        local_features_kpca = []
-        kpca = KernelPCA(LinearKernel())
+        local_features_pca = []
         for i in range(n):
-            kpca.fit(local_features[i,:,:], cut_percentage=90)
-            local_features_kpca.append(kpca.predict(local_features[i], components=n_components))
-        local_features_kpca = numpy.array(local_features_kpca)
+            local_features_pca.append(pca(local_features[i,:,:], components=n_components))
+        local_features_pca = numpy.array(local_features_pca)
         
         gmm = Gmm(nclasses=self.nclasses)
-        gmm.fit(local_features_kpca.reshape(-1, local_features_kpca.shape[-1]), kmeans_niter=self.kmeans_niter, niter=self.gmm_niter)
-        fisher_vector = FisherVector(self.nclasses, len(local_features_kpca[0, 0]), gmm.pi, gmm.mu, gmm.sigma)
+        gmm.fit(local_features_pca.reshape(-1, local_features_pca.shape[-1]), kmeans_niter=self.kmeans_niter, niter=self.gmm_niter)
+        fisher_vector = FisherVector(self.nclasses, len(local_features_pca[0, 0]), gmm.pi, gmm.mu, gmm.sigma)
 
         for i in tqdm(range(n)):
-            ret.append(fisher_vector.predict(local_features_kpca[i,:,:]))
+            ret.append(fisher_vector.predict(local_features_pca[i,:,:]))
 
         return numpy.array(ret), gmm
     
@@ -55,16 +52,14 @@ class FisherFeatureExtractor:
         local_feature_extractor = load_features.get_feature_extractor(self.local_feature_extractor_name)
         local_features = local_feature_extractor.predict(X, unflatten=True)
         
-        local_features_kpca = []
-        kpca = KernelPCA(LinearKernel())
+        local_features_pca = []
         for i in range(n):
-            kpca.fit(local_features[i,:,:], cut_percentage=90)
-            local_features_kpca.append(kpca.predict(local_features[i], components=n_components))
-        local_features_kpca = numpy.array(local_features_kpca)
+            local_features_pca.append(pca(local_features[i,:,:], components=n_components))
+        local_features_pca = numpy.array(local_features_pca)
         
-        fisher_vector = FisherVector(self.nclasses, len(local_features_kpca[0, 0]), gmm.pi, gmm.mu, gmm.sigma)
+        fisher_vector = FisherVector(self.nclasses, len(local_features_pca[0, 0]), gmm.pi, gmm.mu, gmm.sigma)
 
         for i in tqdm(range(n)):
-            ret.append(fisher_vector.predict(local_features_kpca[i,:,:]))
+            ret.append(fisher_vector.predict(local_features_pca[i,:,:]))
 
         return numpy.array(ret)
