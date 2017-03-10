@@ -1,6 +1,7 @@
 import numpy
 import os
 
+from bag_of_words import BagOfWords
 from fisher_feature_extractor import FisherFeatureExtractor
 from hog_feature_extractor import HOGFeatureExtractor
 from kernel_descriptors_extractor import KernelDescriptorsExtractor
@@ -19,11 +20,13 @@ def get_feature_extractor(feature_extractor):
         return FisherFeatureExtractor(local_feature_extractor_name='sift')
     elif feature_extractor == 'kernel_descriptors':
         return KernelDescriptorsExtractor()
+    elif feature_extractor == 'bag_of_words_hog':
+        return BagOfWords(local_feature_extractor_name='hog')
     elif feature_extractor == 'raw':
         return None
     else:
         raise Exception("Unknown feature extractor")
-    
+
 def load_features(feature_extractor_name, overwrite_features=True, overwrite_kpca=True,
                     do_kpca=False, kpca_kernel=None, cut_percentage=90, folder_name='data/'):
     Xtrain, Ytrain, Xtest = load_data(folder_name)
@@ -48,6 +51,19 @@ def load_features(feature_extractor_name, overwrite_features=True, overwrite_kpc
         else:
             Xtrain, V_truncate, gmm = feature_extractor.train(Xtrain)
             Xtest = feature_extractor.predict(Xtest, V_truncate, gmm)
+            numpy.save(folder_name + 'Xtrain_' + feature_extractor_name, Xtrain)
+            numpy.save(folder_name + 'Xtest_' + feature_extractor_name, Xtest)
+    elif feature_extractor_name == 'bag_of_words_hog':
+        if not overwrite_features and os.path.isfile(folder_name + 'Xtrain_' + feature_extractor_name + '.npy') \
+                and os.path.isfile(folder_name + 'Xtest_' + feature_extractor_name + '.npy'):
+            Xtrain = numpy.load(folder_name + 'Xtrain_' + feature_extractor_name + '.npy')
+            Xtest = numpy.load(folder_name + 'Xtest_' + feature_extractor_name + '.npy')
+        else:
+            Xtrain = feature_extractor.extract(Xtrain)
+            Xtest = feature_extractor.extract(Xtest)
+            feature_extractor.fit(Xtrain)
+            Xtrain = feature_extractor.predict(Xtrain)
+            Xtest = feature_extractor.predict(Xtest)
             numpy.save(folder_name + 'Xtrain_' + feature_extractor_name, Xtrain)
             numpy.save(folder_name + 'Xtest_' + feature_extractor_name, Xtest)
     elif feature_extractor is not None:
