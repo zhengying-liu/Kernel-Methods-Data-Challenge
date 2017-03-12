@@ -2,15 +2,14 @@
 Classification into multiple classes with cross entropy loss
 """
 
-from tqdm import tqdm
 import numpy
+from tqdm import tqdm
 
 class CrossEntropyClassifier:
     """
     nclasses: number of classes (assumed between 0 and nclasses - 1)
     W: projection matrix of size (dimension of data) x nclasses
     """
-
     def __init__(self, nclasses):
         self.nclasses = nclasses
         self.W = None
