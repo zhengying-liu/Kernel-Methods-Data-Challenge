@@ -4,8 +4,8 @@ import numpy
 from utils import load_data
 
 """
-kernel_size: The size of the Gaussian kernel, must be an odd integer
 sigma: The sigma of the Gaussian applied to the input image
+kernel_size: The size of the Gaussian kernel, must be an odd integer
 """
 def _create_gaussian_kernel(sigma, kernel_size):
     kernel = numpy.zeros((kernel_size, kernel_size))
@@ -74,6 +74,6 @@ if __name__ == '__main__':
     Xtrain, Ytrain, Xtest = load_data()
     plt.imshow(Xtrain[0, :, :, 0], cmap='gray', interpolation='none')
     plt.show()
-    blur1 = gaussian_blur(Xtrain[0, :, :, 0], kernel_size=5, sigma=1.6)
-    plt.imshow(blur1, cmap='gray', interpolation='none')
+    blur = gaussian_blur(Xtrain[0, :, :, 0], kernel_size=5, sigma=1.6)
+    plt.imshow(blur, cmap='gray', interpolation='none')
     plt.show()
