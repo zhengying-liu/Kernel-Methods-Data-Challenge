@@ -2,8 +2,8 @@
 K-means algorithm, which serves as the initialization of GMM.
 """
 
-from tqdm import tqdm
 import numpy
+from tqdm import tqdm
 
 class Kmeans:
     """
