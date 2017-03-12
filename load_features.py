@@ -6,8 +6,8 @@ from fisher_feature_extractor import FisherFeatureExtractor
 from hog_feature_extractor import HOGFeatureExtractor
 from kernel_descriptors_extractor import KernelDescriptorsExtractor
 from kernel_pca import KernelPCA
-from utils import load_data
 from sift_feature_extractor import SIFTFeatureExtractor
+from utils import load_data
 
 def get_feature_extractor(feature_extractor):
     if feature_extractor == 'hog':
