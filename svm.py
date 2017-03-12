@@ -1,6 +1,6 @@
-from tqdm import tqdm
 import numpy
 import random
+from tqdm import tqdm
 random.seed(123)
 
 class KernelSVMBinaryClassifier:
