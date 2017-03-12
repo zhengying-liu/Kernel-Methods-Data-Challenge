@@ -1,5 +1,5 @@
-from tqdm import tqdm
 import numpy
+from tqdm import tqdm
 
 from sift import SIFT
 
