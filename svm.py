@@ -3,9 +3,6 @@ import numpy
 import random
 random.seed(123)
 
-from quadratic_program_solver import QuadraticProgramSolver
-from sklearn.svm import LinearSVC
-
 class KernelSVMBinaryClassifier:
     """
     X: support vectors
@@ -47,8 +44,8 @@ class KernelSVMBinaryClassifier:
             n = K.shape[0]
             alpha_new = y[j] - y[i] + s * (K[i, j] - K[j, j])
             for k in range(n):
-               if k != i and k != j:
-                   alpha_new += (K[i, k] - K[j, k]) * alpha[k]
+                if k != i and k != j:
+                    alpha_new += (K[i, k] - K[j, k]) * alpha[k]
             alpha_new /= eta
 
             if alpha_new < L:
@@ -78,11 +75,11 @@ class KernelSVMBinaryClassifier:
         b2 = -E[j] + self.bias
 
         if alpha[i] * y[i] > epsilon and alpha[i] * y[i] < self.C - epsilon:
-           bias = b1
+            bias = b1
         elif alpha[j] * y[j] > epsilon and alpha[j] * y[j] < self.C - epsilon:
-           bias = b2
+            bias = b2
         else:
-           bias = (b1 + b2) / 2
+            bias = (b1 + b2) / 2
 
         E[i] += bias - self.bias
         E[j] += bias - self.bias
@@ -102,7 +99,7 @@ class KernelSVMBinaryClassifier:
 
         loop_all = True
 
-        for it in range(iterations):
+        for _ in range(iterations):
             num_changed = 0
 
             for i in range(n):
@@ -232,7 +229,7 @@ class KernelSVMOneVsOneClassifier:
 
         for i in range(self.nclasses):
             aux = []
-            for j in range(i + 1, self.nclasses):
+            for _ in range(i + 1, self.nclasses):
                 aux.append(KernelSVMBinaryClassifier(self.kernel))
             self.SVMMatrix.append(aux)
 
@@ -311,7 +308,7 @@ class KernelSVMOneVsAllClassifier:
         self.kernel = kernel
         self.SVMova = []
 
-        for i in range(self.nclasses):
+        for _ in range(self.nclasses):
             self.SVMova.append(KernelSVMBinaryClassifier(self.kernel))
 
     def fit(self, X, y, C, validation=None, K=None, check=False):
