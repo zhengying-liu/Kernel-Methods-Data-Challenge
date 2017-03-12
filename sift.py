@@ -11,8 +11,8 @@ https://github.com/opencv/opencv/blob/2.4/modules/nonfree/src/sift.cpp
 import matplotlib.pyplot as plt
 import numpy
 
-from keypoint import Keypoint
 from image_utils import gaussian_blur, inv_transform_image_linear
+from keypoint import Keypoint
 from matplotlib.patches import Circle
 
 plot = False
