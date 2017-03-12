@@ -83,6 +83,5 @@ if __name__ == '__main__':
     print(Xtrain[0, 0, 0, 0], Xtrain[0, 31, 31, 2])
     print(Ytrain[:10])
 
-    import matplotlib.pyplot as plt
     plt.imshow(Xtrain[0,:,:,:])
     plt.show()
