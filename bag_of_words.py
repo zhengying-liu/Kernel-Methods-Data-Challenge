@@ -1,7 +1,7 @@
 import numpy
 
-from kmeans import Kmeans
 from hog_feature_extractor import HOGFeatureExtractor
+from kmeans import Kmeans
 
 class BagOfWords:
     def __init__(self, local_feature_extractor_name='hog', nclusters=256):
