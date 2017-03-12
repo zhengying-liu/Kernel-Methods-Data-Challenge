@@ -1,5 +1,5 @@
-from tqdm import tqdm
 import numpy
+from tqdm import tqdm
 
 # References:
 # http://mccormickml.com/2013/05/09/hog-person-detector-tutorial/
