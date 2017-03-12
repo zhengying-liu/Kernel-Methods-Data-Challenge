@@ -1,6 +1,6 @@
-from scipy import linalg
 import matplotlib.pyplot as plt
 import numpy
+from scipy import linalg
 
 class KernelPCA:
     def __init__(self, kernel):
