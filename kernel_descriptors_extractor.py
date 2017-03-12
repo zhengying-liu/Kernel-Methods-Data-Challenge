@@ -1,5 +1,5 @@
-from tqdm import tqdm
 import numpy
+from tqdm import tqdm
 
 from feature_vector_projection import FeatureVectorProjection
 from kernel_pca import KernelPCA
