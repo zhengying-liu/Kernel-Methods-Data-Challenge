@@ -1,10 +1,10 @@
 import numpy
 
 from cross_entropy_classifier import CrossEntropyClassifier
-from load_features import load_features
 from kernels import (LinearKernel, GaussianKernel, HistogramIntersectionKernel,
                     LaplacianRBFKernel, SublinearRBFKernel)
 from svm import KernelSVMOneVsOneClassifier, KernelSVMOneVsAllClassifier
+from load_features import load_features
 from utils import plot_history, write_output, concat_bias
 
 output_suffix = 'trial15'
