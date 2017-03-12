@@ -2,11 +2,11 @@
 Guassian Mixture Model, which serves as an input argument of the Fisher Vector.
 Special case: The covariance matrices are assumed to be diagonal matrices.
 """
-from tqdm import tqdm
 import numpy
+from tqdm import tqdm
 
-from kmeans import Kmeans
 from gamma import gamma
+from kmeans import Kmeans
 
 class Gmm:
     """
